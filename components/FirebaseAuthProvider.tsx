@@ -10,6 +10,8 @@ import {
 import {
   onAuthStateChanged,
   signInWithPopup,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
   signOut as firebaseSignOut,
   type User,
 } from 'firebase/auth';
@@ -18,14 +20,18 @@ import { auth, googleProvider, isFirebaseConfigured } from '@/lib/firebase';
 interface AuthContextValue {
   user:    User | null;
   loading: boolean;
-  signInWithGoogle: () => Promise<void>;
-  signOut:          () => Promise<void>;
+  signInWithGoogle:        () => Promise<void>;
+  signInWithEmail:         (email: string, password: string) => Promise<void>;
+  signUpWithEmail:         (email: string, password: string) => Promise<void>;
+  signOut:                 () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue>({
   user:             null,
   loading:          true,
   signInWithGoogle: async () => {},
+  signInWithEmail:  async () => {},
+  signUpWithEmail:  async () => {},
   signOut:          async () => {},
 });
 
@@ -34,8 +40,6 @@ export function FirebaseAuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Skip Firebase auth if env vars are not configured (e.g. during local dev
-    // without .env.local, or on Vercel before env vars are set).
     if (!isFirebaseConfigured()) {
       setLoading(false);
       return;
@@ -51,12 +55,20 @@ export function FirebaseAuthProvider({ children }: { children: ReactNode }) {
     await signInWithPopup(auth, googleProvider);
   };
 
+  const signInWithEmail = async (email: string, password: string) => {
+    await signInWithEmailAndPassword(auth, email, password);
+  };
+
+  const signUpWithEmail = async (email: string, password: string) => {
+    await createUserWithEmailAndPassword(auth, email, password);
+  };
+
   const signOut = async () => {
     await firebaseSignOut(auth);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signInWithGoogle, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signInWithGoogle, signInWithEmail, signUpWithEmail, signOut }}>
       {children}
     </AuthContext.Provider>
   );
