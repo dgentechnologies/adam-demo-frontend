@@ -7,6 +7,7 @@ import { useAuth } from '@/components/FirebaseAuthProvider';
 import { DemoSession } from '@/components/adam/DemoSession';
 import { AdamFace } from '@/components/adam/AdamFace';
 import { OnboardingForm } from '@/components/adam/OnboardingForm';
+import { DemoAuthGate } from '@/components/adam/DemoAuthGate';
 import { db } from '@/lib/firebase';
 
 const WAITLIST_URL = 'https://dgentechnologies.com/adam#waitlist';
@@ -273,159 +274,20 @@ export default function AdamDemoPage() {
   // ── Auth gate ─────────────────────────────────────────────────────────────
   if (!user) {
     return (
-      <div style={{
-        minHeight: '100vh',
-        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        background: '#0a0a0a',
-        padding: '32px 20px',
-        position: 'relative',
-        overflow: 'hidden',
-      }}>
-        {/* Ambient glow */}
-        <div style={{ position: 'absolute', top: '30%', left: '50%', transform: 'translate(-50%,-50%)', width: 480, height: 480, borderRadius: '50%', background: 'radial-gradient(circle, rgba(74,240,255,0.045) 0%, transparent 70%)', pointerEvents: 'none' }} />
-
-        {/* Step indicator */}
-        <div style={{ display: 'flex', gap: 6, marginBottom: 32 }}>
-          {[0, 1, 2].map((n) => (
-            <div key={n} style={{ height: 3, borderRadius: 2, background: n === 0 ? '#4AF0FF' : 'rgba(255,255,255,0.08)', width: n === 0 ? 28 : 10, transition: 'all 0.3s' }} />
-          ))}
-        </div>
-
-        <div style={{ width: '100%', maxWidth: 400, position: 'relative', zIndex: 1 }}>
-
-          {/* Face + title */}
-          <div style={{ textAlign: 'center', marginBottom: 28 }}>
-            <div style={{ display: 'inline-block', filter: 'drop-shadow(0 0 20px rgba(74,240,255,0.3))' }}>
-              <AdamFace emotion="happy" faceState="idle" size={120} />
-            </div>
-            <h1 style={{ fontFamily: '"Rajdhani", sans-serif', fontWeight: 600, fontSize: 34, letterSpacing: '0.07em', color: '#f0f0f0', margin: '12px 0 0' }}>
-              Talk to <span style={{ color: '#4AF0FF' }}>ADAM</span>
-            </h1>
-            <p style={{ fontFamily: '"Share Tech Mono", monospace', fontSize: 10, color: '#555', marginTop: 6, letterSpacing: '0.1em' }}>
-              5 MIN · FREE PREVIEW
-            </p>
-          </div>
-
-          {/* Auth card */}
-          <div style={{
-            background: '#0f0f0f',
-            border: '1px solid rgba(255,255,255,0.07)',
-            borderRadius: 18,
-            padding: '28px 26px',
-            boxShadow: '0 0 0 1px rgba(255,255,255,0.03), 0 24px 60px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.05)',
-          }}>
-
-            {/* Google button — primary */}
-            <button
-              onClick={handleGoogle}
-              disabled={busy}
-              style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-                width: '100%', padding: '13px 0',
-                background: busy ? 'rgba(255,255,255,0.85)' : '#ffffff',
-                color: '#1a1a1a',
-                border: 'none', borderRadius: 12,
-                cursor: busy ? 'not-allowed' : 'pointer',
-                fontFamily: '"DM Sans", sans-serif', fontWeight: 500, fontSize: 14,
-                boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
-                transition: 'box-shadow 0.2s, transform 0.1s',
-              }}
-              onMouseEnter={(e) => { if (!busy) { e.currentTarget.style.boxShadow = '0 4px 18px rgba(0,0,0,0.5)'; e.currentTarget.style.transform = 'translateY(-1px)'; } }}
-              onMouseLeave={(e) => { e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.4)'; e.currentTarget.style.transform = 'translateY(0)'; }}
-            >
-              {busy
-                ? <div style={{ width: 18, height: 18, border: '2px solid #bbb', borderTopColor: 'transparent', borderRadius: '50%', animation: 'pgSpin 0.7s linear infinite' }} />
-                : <Image src="/images/google-logo.svg" alt="Google" width={18} height={18} unoptimized />
-              }
-              <span>{busy ? 'Signing in…' : 'Continue with Google'}</span>
-            </button>
-
-            {/* Divider */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '22px 0' }}>
-              <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.07)' }} />
-              <span style={{ fontFamily: '"Share Tech Mono", monospace', fontSize: 10, color: '#333', letterSpacing: '0.06em' }}>OR</span>
-              <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.07)' }} />
-            </div>
-
-            {/* Email form */}
-            <form onSubmit={handleEmailSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {emailMode === 'signup' && (
-                <input
-                  type="text" placeholder="Your name" value={name}
-                  onChange={(e) => setName(e.target.value)} autoComplete="name"
-                  style={INPUT}
-                  onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(74,240,255,0.35)'; e.currentTarget.style.background = 'rgba(74,240,255,0.04)'; }}
-                  onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'; e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
-                />
-              )}
-              <input
-                type="email" placeholder="Email address" value={email}
-                onChange={(e) => setEmail(e.target.value)} autoComplete="email" required
-                style={INPUT}
-                onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(74,240,255,0.35)'; e.currentTarget.style.background = 'rgba(74,240,255,0.04)'; }}
-                onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'; e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
-              />
-              <input
-                type="password" placeholder="Password"
-                value={password} onChange={(e) => setPassword(e.target.value)}
-                autoComplete={emailMode === 'signin' ? 'current-password' : 'new-password'} required
-                style={INPUT}
-                onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(74,240,255,0.35)'; e.currentTarget.style.background = 'rgba(74,240,255,0.04)'; }}
-                onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'; e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
-              />
-
-              <button
-                type="submit" disabled={busy}
-                style={{
-                  padding: '13px 0', marginTop: 2,
-                  background: busy ? 'rgba(74,240,255,0.35)' : '#4AF0FF',
-                  color: '#0a0a0a', border: 'none', borderRadius: 12,
-                  cursor: busy ? 'not-allowed' : 'pointer',
-                  fontFamily: '"Rajdhani", sans-serif', fontWeight: 600, fontSize: 15, letterSpacing: '0.07em',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                  boxShadow: busy ? 'none' : '0 0 20px rgba(74,240,255,0.25)',
-                  transition: 'box-shadow 0.2s, transform 0.1s',
-                }}
-                onMouseEnter={(e) => { if (!busy) { e.currentTarget.style.boxShadow = '0 0 32px rgba(74,240,255,0.45)'; e.currentTarget.style.transform = 'translateY(-1px)'; } }}
-                onMouseLeave={(e) => { e.currentTarget.style.boxShadow = '0 0 20px rgba(74,240,255,0.25)'; e.currentTarget.style.transform = 'translateY(0)'; }}
-              >
-                {busy && <div style={{ width: 15, height: 15, border: '2px solid rgba(0,0,0,0.25)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'pgSpin 0.7s linear infinite' }} />}
-                {busy ? 'Please wait…' : emailMode === 'signin' ? 'SIGN IN →' : 'CREATE ACCOUNT →'}
-              </button>
-            </form>
-
-            {/* Mode toggle */}
-            <p style={{ marginTop: 16, textAlign: 'center', fontFamily: '"DM Sans", sans-serif', fontSize: 13, color: '#555' }}>
-              {emailMode === 'signup' ? 'Already have an account? ' : 'New here? '}
-              <button
-                onClick={() => { setEmailMode(emailMode === 'signup' ? 'signin' : 'signup'); clearError(); }}
-                style={{ background: 'none', border: 'none', color: '#4AF0FF', cursor: 'pointer', fontFamily: '"DM Sans", sans-serif', fontSize: 13, padding: 0, fontWeight: 500 }}
-              >
-                {emailMode === 'signup' ? 'Sign in' : 'Create account'}
-              </button>
-            </p>
-
-            {/* Error */}
-            {error && (
-              <div style={{ marginTop: 14, padding: '10px 14px', background: 'rgba(220,80,80,0.08)', border: '1px solid rgba(220,80,80,0.25)', borderRadius: 10, color: '#ff8080', fontFamily: '"Share Tech Mono", monospace', fontSize: 11, letterSpacing: '0.04em' }}>
-                {error}
-              </div>
-            )}
-          </div>
-
-          {/* Privacy note */}
-          <p style={{ marginTop: 16, textAlign: 'center', fontFamily: '"DM Sans", sans-serif', fontSize: 11, color: 'rgba(255,255,255,0.18)', lineHeight: 1.6 }}>
-            By continuing you agree to our{' '}
-            <a href="https://dgentechnologies.com/privacy-policy" target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(74,240,255,0.5)', textDecoration: 'none' }}>Privacy Policy</a>.
-          </p>
-        </div>
-
-        <style>{`
-          ${FONTS}
-          @keyframes pgSpin { to { transform: rotate(360deg); } }
-          input::placeholder { color: #444; }
-        `}</style>
-      </div>
+      <DemoAuthGate
+        busy={busy}
+        error={error}
+        emailMode={emailMode}
+        name={name}
+        email={email}
+        password={password}
+        onGoogleClick={handleGoogle}
+        onEmailSubmit={handleEmailSubmit}
+        onNameChange={setName}
+        onEmailChange={setEmail}
+        onPasswordChange={setPassword}
+        onModeToggle={() => { setEmailMode(emailMode === 'signup' ? 'signin' : 'signup'); clearError(); }}
+      />
     );
   }
 
