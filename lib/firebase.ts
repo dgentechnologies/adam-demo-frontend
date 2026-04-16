@@ -1,11 +1,17 @@
 // lib/firebase.ts — Firebase client SDK (browser-side only)
 // Initialization is LAZY: Firebase is NOT touched at module-load / SSR time.
-// The first property access on `auth` or `db` (which only happens inside
-// browser useEffect/event handlers) triggers real initialization.
+// If the NEXT_PUBLIC_FIREBASE_API_KEY env var is absent (e.g. Vercel project
+// settings not yet configured), Firebase is simply skipped — no crash.
 
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
 import { getAuth as _getAuth, GoogleAuthProvider, type Auth } from 'firebase/auth';
 import { getFirestore as _getFirestore, type Firestore } from 'firebase/firestore';
+
+/** Returns true only when all required Firebase client config vars are present. */
+export function isFirebaseConfigured(): boolean {
+  const key = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+  return !!(key && key.length > 0 && key !== 'your_firebase_api_key');
+}
 
 const firebaseConfig = {
   apiKey:            process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -35,14 +41,11 @@ function makeLazyProxy<T extends object>(factory: () => T): T {
     get(_, prop) {
       if (!instance) instance = factory();
       const val = Reflect.get(instance, prop, instance);
-      // Bind methods so `this` is always the real instance, not the Proxy.
       return typeof val === 'function' ? (val as (...a: unknown[]) => unknown).bind(instance) : val;
     },
   });
 }
 
-// `auth` and `db` are lazy — calling getAuth / getFirestore (which validates
-// the API key) is deferred until first use in the browser.
 export const auth = makeLazyProxy<Auth>(     () => { if (!_auth) _auth = _getAuth(getFirebaseApp());      return _auth; });
 export const db   = makeLazyProxy<Firestore>(() => { if (!_db)   _db   = _getFirestore(getFirebaseApp()); return _db;   });
 
