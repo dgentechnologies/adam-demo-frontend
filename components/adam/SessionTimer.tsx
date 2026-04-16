@@ -34,9 +34,8 @@ export function SessionTimer({ durationMs, turnsAllowed, turnCount, onExpire, co
     return () => clearInterval(id);
   }, [durationMs]);
 
-  const pct      = remaining / durationMs;
-  const isWarn   = pct < 0.25;
-  const turnsLeft = turnsAllowed - turnCount;
+  const pct    = remaining / durationMs;
+  const isWarn = pct < 0.25;
 
   if (compact) {
     return (
@@ -63,15 +62,7 @@ export function SessionTimer({ durationMs, turnsAllowed, turnCount, onExpire, co
         >
           ⏱ {fmt(remaining)}
         </span>
-        <span
-          style={{
-            fontFamily: '"Share Tech Mono", monospace',
-            fontSize: 11,
-            color: turnsLeft <= 3 ? '#ff6b6b' : '#9a9a9a',
-          }}
-        >
-          · {turnCount}/{turnsAllowed}
-        </span>
+
       </div>
     );
   }
@@ -87,9 +78,7 @@ export function SessionTimer({ durationMs, turnsAllowed, turnCount, onExpire, co
           style={{ width: `${pct * 100}%` }}
         />
       </div>
-      <span className={`font-semibold ${turnsLeft <= 3 ? 'text-red-400' : 'text-gray-300'}`}>
-        💬 {turnCount} / {turnsAllowed}
-      </span>
+
     </div>
   );
 }

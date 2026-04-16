@@ -9,32 +9,34 @@ import { AdamFace } from '@/components/adam/AdamFace';
 import { OnboardingForm } from '@/components/adam/OnboardingForm';
 import { db } from '@/lib/firebase';
 
-// Waitlist URL — update when company URL is provided
 const WAITLIST_URL = 'https://dgentechnologies.com/adam#waitlist';
 
 type Step        = 'auth' | 'checking' | 'onboarding' | 'demo';
-type AuthTab     = 'google' | 'email';
 type EmailMode   = 'signin' | 'signup';
 type DemoOverlay = 'welcome' | 'active' | 'ended';
 
-const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600&family=Share+Tech+Mono&family=DM+Sans:wght@300;400;600&display=swap');`;
+const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;600&family=Share+Tech+Mono&family=DM+Sans:wght@300;400;500&display=swap');`;
 
-// ── Shared input/label styles ─────────────────────────────────────────────────
+// ── Shared input styles ───────────────────────────────────────────────────────
 const INPUT: React.CSSProperties = {
-  width: '100%', padding: '11px 14px',
-  background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.1)',
-  borderRadius: 8, color: '#f0f0f0',
+  width: '100%', padding: '12px 16px',
+  background: 'rgba(255,255,255,0.04)',
+  border: '1px solid rgba(255,255,255,0.09)',
+  borderRadius: 10, color: '#f0f0f0',
   fontFamily: '"DM Sans", sans-serif', fontSize: 14,
   outline: 'none', boxSizing: 'border-box',
+  transition: 'border-color 0.2s',
 };
 
 // ── Spinner ───────────────────────────────────────────────────────────────────
 function Spinner({ label }: { label?: string }) {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#0a0a0a', gap: 20 }}>
-      <AdamFace emotion="idle" faceState="idle" size={160} />
-      <div style={{ width: 28, height: 28, border: '2px solid #4AF0FF', borderTopColor: 'transparent', borderRadius: '50%', animation: 'pgSpin 0.8s linear infinite' }} />
-      {label && <p style={{ fontFamily: '"Share Tech Mono", monospace', fontSize: 12, color: '#9a9a9a', letterSpacing: '0.1em' }}>{label}</p>}
+      <div style={{ filter: 'drop-shadow(0 0 18px rgba(74,240,255,0.3))' }}>
+        <AdamFace emotion="idle" faceState="idle" size={160} />
+      </div>
+      <div style={{ width: 24, height: 24, border: '1.5px solid rgba(74,240,255,0.3)', borderTopColor: '#4AF0FF', borderRadius: '50%', animation: 'pgSpin 0.8s linear infinite' }} />
+      {label && <p style={{ fontFamily: '"Share Tech Mono", monospace', fontSize: 11, color: '#444', letterSpacing: '0.12em' }}>{label}</p>}
       <style>{`@keyframes pgSpin { to { transform: rotate(360deg); } } ${FONTS}`}</style>
     </div>
   );
@@ -53,64 +55,44 @@ function WelcomeOverlay({ onDismiss }: { onDismiss: () => void }) {
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
         padding: '32px 24px',
         opacity: visible ? 1 : 0,
-        transition: 'opacity 0.4s ease',
+        transition: 'opacity 0.5s ease',
+        overflow: 'hidden',
       }}
     >
-      <div style={{ width: '100%', maxWidth: 400, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 22 }}>
+      {/* Ambient glow behind face */}
+      <div style={{ position: 'absolute', top: '35%', left: '50%', transform: 'translate(-50%, -50%)', width: 520, height: 520, borderRadius: '50%', background: 'radial-gradient(circle, rgba(74,240,255,0.06) 0%, transparent 65%)', pointerEvents: 'none' }} />
+
+      <div style={{ width: '100%', maxWidth: 420, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24, position: 'relative', zIndex: 1 }}>
+
+        {/* DGEN badge */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 20 }}>
+          <span style={{ fontFamily: '"Share Tech Mono", monospace', fontSize: 9, color: '#555', letterSpacing: '0.14em' }}>DGEN TECHNOLOGIES</span>
+        </div>
 
         {/* Animated face */}
-        <div style={{ filter: 'drop-shadow(0 0 24px rgba(74,240,255,0.35))' }}>
-          <AdamFace emotion="happy" faceState="idle" size={180} />
+        <div style={{ filter: 'drop-shadow(0 0 28px rgba(74,240,255,0.4))' }}>
+          <AdamFace emotion="happy" faceState="idle" size={190} />
         </div>
 
         {/* Greeting */}
-        <div>
-          <h1
-            style={{
-              fontFamily: '"Rajdhani", sans-serif', fontWeight: 600,
-              fontSize: 36, letterSpacing: '0.06em', color: '#f0f0f0', margin: 0,
-            }}
-          >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <h1 style={{ fontFamily: '"Rajdhani", sans-serif', fontWeight: 600, fontSize: 40, letterSpacing: '0.06em', color: '#f0f0f0', margin: 0 }}>
             Hello. I&apos;m <span style={{ color: '#4AF0FF' }}>ADAM</span>.
           </h1>
-          <p
-            style={{
-              fontFamily: '"Share Tech Mono", monospace', fontSize: 11,
-              color: '#9a9a9a', marginTop: 6, letterSpacing: '0.08em',
-            }}
-          >
-            AUTONOMOUS DESKTOP AI MODULE · DGEN TECHNOLOGIES
+          <p style={{ fontFamily: '"Share Tech Mono", monospace', fontSize: 10, color: '#444', letterSpacing: '0.1em', margin: 0 }}>
+            AUTONOMOUS DESKTOP AI MODULE
           </p>
         </div>
 
-        {/* Message from ADAM's perspective */}
-        <div
-          style={{
-            background: 'rgba(74,240,255,0.04)',
-            border: '1px solid rgba(74,240,255,0.12)',
-            borderRadius: 14, padding: '18px 20px',
-            textAlign: 'left',
-          }}
-        >
-          <p
-            style={{
-              fontFamily: '"DM Sans", sans-serif', fontSize: 14, lineHeight: 1.75,
-              color: '#c0c0c0', margin: 0,
-            }}
-          >
-            I can hear your voice, process what you say in real time, and respond like a person —
-            because I&apos;m powered by Gemini Live. You have{' '}
-            <span style={{ color: '#4AF0FF', fontWeight: 600 }}>5 minutes</span>{' '}
-            with me right now.
+        {/* Message */}
+        <div style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: '20px 22px', textAlign: 'left' }}>
+          <p style={{ fontFamily: '"DM Sans", sans-serif', fontSize: 14, lineHeight: 1.8, color: '#aaa', margin: 0 }}>
+            I can hear your voice, process what you say in real time, and respond like a person — because I&apos;m powered by{' '}
+            <span style={{ color: '#f0f0f0', fontWeight: 500 }}>Gemini Live</span>. You have{' '}
+            <span style={{ color: '#4AF0FF', fontWeight: 500 }}>5 minutes</span> with me right now.
           </p>
-          <p
-            style={{
-              fontFamily: '"DM Sans", sans-serif', fontSize: 14, lineHeight: 1.75,
-              color: '#c0c0c0', margin: '10px 0 0',
-            }}
-          >
-            Hold the <span style={{ color: '#4AF0FF' }}>mic button</span> and speak clearly.
-            Release when you&apos;re done. I&apos;ll take it from there.
+          <p style={{ fontFamily: '"DM Sans", sans-serif', fontSize: 14, lineHeight: 1.8, color: '#aaa', margin: '10px 0 0' }}>
+            Hold the <span style={{ color: '#4AF0FF', fontWeight: 500 }}>mic button</span> and speak clearly. Release when you&apos;re done.
           </p>
         </div>
 
@@ -118,22 +100,22 @@ function WelcomeOverlay({ onDismiss }: { onDismiss: () => void }) {
         <button
           onClick={onDismiss}
           style={{
-            width: '100%', padding: '14px 0',
+            width: '100%', padding: '15px 0',
             background: '#4AF0FF', color: '#0a0a0a',
-            border: 'none', borderRadius: 12,
+            border: 'none', borderRadius: 14,
             fontFamily: '"Rajdhani", sans-serif', fontWeight: 600,
-            fontSize: 16, letterSpacing: '0.08em',
+            fontSize: 16, letterSpacing: '0.09em',
             cursor: 'pointer',
-            boxShadow: '0 0 28px rgba(74,240,255,0.35)',
+            boxShadow: '0 0 32px rgba(74,240,255,0.35)',
             transition: 'transform 0.1s ease, box-shadow 0.2s ease',
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.boxShadow = '0 0 40px rgba(74,240,255,0.5)'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.boxShadow = '0 0 28px rgba(74,240,255,0.35)'; }}
+          onMouseEnter={(e) => { e.currentTarget.style.boxShadow = '0 0 48px rgba(74,240,255,0.55)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.boxShadow = '0 0 32px rgba(74,240,255,0.35)'; e.currentTarget.style.transform = 'translateY(0)'; }}
         >
           UNDERSTOOD →
         </button>
 
-        <p style={{ fontFamily: '"Share Tech Mono", monospace', fontSize: 10, color: 'rgba(255,255,255,0.18)', letterSpacing: '0.06em' }}>
+        <p style={{ fontFamily: '"Share Tech Mono", monospace', fontSize: 9, color: 'rgba(255,255,255,0.15)', letterSpacing: '0.08em' }}>
           MICROPHONE ACCESS REQUIRED
         </p>
       </div>
@@ -151,43 +133,32 @@ function EndOverlay({ reason }: { reason: string }) {
     <div
       style={{
         position: 'fixed', inset: 0, zIndex: 200,
-        background: 'rgba(10,10,10,0.96)',
-        backdropFilter: 'blur(6px)',
+        background: '#0a0a0a',
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
         padding: '32px 24px',
       }}
     >
-      <div style={{ width: '100%', maxWidth: 380, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
+      {/* Subtle ambient */}
+      <div style={{ position: 'absolute', top: '40%', left: '50%', transform: 'translate(-50%,-50%)', width: 400, height: 400, borderRadius: '50%', background: 'radial-gradient(circle, rgba(74,240,255,0.04) 0%, transparent 65%)', pointerEvents: 'none' }} />
 
-        <AdamFace emotion="sad" faceState="idle" size={150} />
+      <div style={{ width: '100%', maxWidth: 380, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 22, position: 'relative', zIndex: 1 }}>
+
+        <div style={{ filter: 'drop-shadow(0 0 20px rgba(74,240,255,0.2))' }}>
+          <AdamFace emotion="sad" faceState="idle" size={150} />
+        </div>
 
         <div>
-          <p
-            style={{
-              fontFamily: '"Share Tech Mono", monospace', fontSize: 11,
-              color: '#9a9a9a', letterSpacing: '0.1em', margin: '0 0 8px',
-            }}
-          >
+          <p style={{ fontFamily: '"Share Tech Mono", monospace', fontSize: 10, color: '#444', letterSpacing: '0.12em', margin: '0 0 8px' }}>
             {isTimeout ? 'PREVIEW ENDED' : isUserExit ? 'SESSION CLOSED' : 'SESSION ENDED'}
           </p>
-          <h2
-            style={{
-              fontFamily: '"Rajdhani", sans-serif', fontWeight: 600,
-              fontSize: 28, letterSpacing: '0.05em', color: '#f0f0f0', margin: 0,
-            }}
-          >
+          <h2 style={{ fontFamily: '"Rajdhani", sans-serif', fontWeight: 600, fontSize: 30, letterSpacing: '0.05em', color: '#f0f0f0', margin: 0 }}>
             {isTimeout
               ? "That's your 5-minute preview."
               : isUserExit
               ? 'You ended the session.'
               : 'Session complete.'}
           </h2>
-          <p
-            style={{
-              fontFamily: '"DM Sans", sans-serif', fontSize: 14,
-              color: '#9a9a9a', marginTop: 10, lineHeight: 1.6,
-            }}
-          >
+          <p style={{ fontFamily: '"DM Sans", sans-serif', fontSize: 14, color: '#666', marginTop: 10, lineHeight: 1.7 }}>
             {isTimeout
               ? 'Want ADAM on your desk, available all day? Be first when it ships.'
               : 'Ready to own one? Join the waitlist now.'}
@@ -199,13 +170,16 @@ function EndOverlay({ reason }: { reason: string }) {
           href={WAITLIST_URL}
           target="_top"
           style={{
-            display: 'block', width: '100%', padding: '14px 0',
+            display: 'block', width: '100%', padding: '15px 0',
             background: '#4AF0FF', color: '#0a0a0a',
-            borderRadius: 12, textDecoration: 'none',
+            borderRadius: 14, textDecoration: 'none',
             fontFamily: '"Rajdhani", sans-serif', fontWeight: 600,
-            fontSize: 16, letterSpacing: '0.08em', textAlign: 'center',
-            boxShadow: '0 0 28px rgba(74,240,255,0.3)',
+            fontSize: 15, letterSpacing: '0.09em', textAlign: 'center',
+            boxShadow: '0 0 32px rgba(74,240,255,0.3)',
+            transition: 'box-shadow 0.2s',
           }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.boxShadow = '0 0 48px rgba(74,240,255,0.5)'; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.boxShadow = '0 0 32px rgba(74,240,255,0.3)'; }}
         >
           → JOIN THE ADAM WAITLIST
         </a>
@@ -215,15 +189,15 @@ function EndOverlay({ reason }: { reason: string }) {
           onClick={() => window.location.reload()}
           style={{
             background: 'transparent',
-            border: '1px solid rgba(255,255,255,0.12)',
-            color: '#9a9a9a', borderRadius: 10,
-            padding: '10px 28px', cursor: 'pointer',
-            fontFamily: '"Share Tech Mono", monospace', fontSize: 12,
-            letterSpacing: '0.06em',
+            border: '1px solid rgba(255,255,255,0.08)',
+            color: '#444', borderRadius: 12,
+            padding: '11px 32px', cursor: 'pointer',
+            fontFamily: '"Share Tech Mono", monospace', fontSize: 11,
+            letterSpacing: '0.07em',
             transition: 'border-color 0.2s, color 0.2s',
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)'; e.currentTarget.style.color = '#f0f0f0'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; e.currentTarget.style.color = '#9a9a9a'; }}
+          onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.22)'; e.currentTarget.style.color = '#f0f0f0'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = '#444'; }}
         >
           TRY AGAIN ↺
         </button>
@@ -242,7 +216,6 @@ export default function AdamDemoPage() {
   const [endReason,   setEndReason]   = useState('');
 
   // Auth form
-  const [tab,       setTab]       = useState<AuthTab>('google');
   const [emailMode, setEmailMode] = useState<EmailMode>('signup');
   const [name,      setName]      = useState('');
   const [email,     setEmail]     = useState('');
@@ -250,7 +223,7 @@ export default function AdamDemoPage() {
   const [busy,      setBusy]      = useState(false);
   const [error,     setError]     = useState('');
 
-  useEffect(() => { document.title = 'ADAM Live — DGEN Technologies'; }, []);
+  useEffect(() => { document.title = 'ADAM Live Demo — DGEN Technologies'; }, []);
 
   // After auth, check onboarding
   useEffect(() => {
@@ -258,7 +231,7 @@ export default function AdamDemoPage() {
     setStep('checking');
     getDoc(doc(db, 'onboarding', user.uid))
       .then((snap) => setStep(snap.exists() && snap.data()?.completed ? 'demo' : 'onboarding'))
-      .catch(() => setStep('demo')); // Firestore unavailable → skip
+      .catch(() => setStep('demo'));
   }, [user, loading]);
 
   const clearError = () => setError('');
@@ -300,110 +273,157 @@ export default function AdamDemoPage() {
   // ── Auth gate ─────────────────────────────────────────────────────────────
   if (!user) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#0a0a0a', padding: '32px 20px' }}>
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        background: '#0a0a0a',
+        padding: '32px 20px',
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
+        {/* Ambient glow */}
+        <div style={{ position: 'absolute', top: '30%', left: '50%', transform: 'translate(-50%,-50%)', width: 480, height: 480, borderRadius: '50%', background: 'radial-gradient(circle, rgba(74,240,255,0.045) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
-        {/* Progress — step 1 of 3 */}
-        <div style={{ display: 'flex', gap: 6, marginBottom: 28 }}>
-          {[1, 2, 3].map((n) => (
-            <div key={n} style={{ width: n === 1 ? 32 : 10, height: 4, borderRadius: 2, background: n === 1 ? '#4AF0FF' : 'rgba(255,255,255,0.1)' }} />
+        {/* Step indicator */}
+        <div style={{ display: 'flex', gap: 6, marginBottom: 32 }}>
+          {[0, 1, 2].map((n) => (
+            <div key={n} style={{ height: 3, borderRadius: 2, background: n === 0 ? '#4AF0FF' : 'rgba(255,255,255,0.08)', width: n === 0 ? 28 : 10, transition: 'all 0.3s' }} />
           ))}
         </div>
 
-        <div style={{ width: '100%', maxWidth: 400 }}>
+        <div style={{ width: '100%', maxWidth: 400, position: 'relative', zIndex: 1 }}>
 
           {/* Face + title */}
-          <div style={{ textAlign: 'center', marginBottom: 24 }}>
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}>
+          <div style={{ textAlign: 'center', marginBottom: 28 }}>
+            <div style={{ display: 'inline-block', filter: 'drop-shadow(0 0 20px rgba(74,240,255,0.3))' }}>
               <AdamFace emotion="happy" faceState="idle" size={120} />
             </div>
-            <h1 style={{ fontFamily: '"Rajdhani", sans-serif', fontWeight: 600, fontSize: 32, letterSpacing: '0.06em', color: '#f0f0f0', margin: 0 }}>
+            <h1 style={{ fontFamily: '"Rajdhani", sans-serif', fontWeight: 600, fontSize: 34, letterSpacing: '0.07em', color: '#f0f0f0', margin: '12px 0 0' }}>
               Talk to <span style={{ color: '#4AF0FF' }}>ADAM</span>
             </h1>
-            <p style={{ fontFamily: '"Share Tech Mono", monospace', fontSize: 11, color: '#9a9a9a', marginTop: 5, letterSpacing: '0.06em' }}>
-              5 MIN · 20 TURNS · FREE PREVIEW
+            <p style={{ fontFamily: '"Share Tech Mono", monospace', fontSize: 10, color: '#555', marginTop: 6, letterSpacing: '0.1em' }}>
+              5 MIN · FREE PREVIEW
             </p>
           </div>
 
-          {/* Card */}
-          <div style={{ background: '#111111', border: '1px solid rgba(255,255,255,0.055)', borderRadius: 16, padding: '26px 22px', boxShadow: '0 10px 40px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,255,255,0.06)' }}>
+          {/* Auth card */}
+          <div style={{
+            background: '#0f0f0f',
+            border: '1px solid rgba(255,255,255,0.07)',
+            borderRadius: 18,
+            padding: '28px 26px',
+            boxShadow: '0 0 0 1px rgba(255,255,255,0.03), 0 24px 60px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.05)',
+          }}>
 
-            {/* Tabs */}
-            <div style={{ display: 'flex', gap: 2, background: '#1a1a1a', borderRadius: 10, padding: 3, marginBottom: 22 }}>
-              {(['google', 'email'] as AuthTab[]).map((t) => (
-                <button key={t} onClick={() => { setTab(t); clearError(); }}
-                  style={{ flex: 1, padding: '8px 0', borderRadius: 8, border: 'none', cursor: 'pointer', fontFamily: '"Share Tech Mono", monospace', fontSize: 12, letterSpacing: '0.05em', transition: 'all 0.2s', background: tab === t ? '#4AF0FF' : 'transparent', color: tab === t ? '#0a0a0a' : '#9a9a9a', fontWeight: tab === t ? 700 : 400 }}
-                >
-                  {t === 'google' ? 'GOOGLE' : 'EMAIL'}
-                </button>
-              ))}
+            {/* Google button — primary */}
+            <button
+              onClick={handleGoogle}
+              disabled={busy}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                width: '100%', padding: '13px 0',
+                background: busy ? 'rgba(255,255,255,0.85)' : '#ffffff',
+                color: '#1a1a1a',
+                border: 'none', borderRadius: 12,
+                cursor: busy ? 'not-allowed' : 'pointer',
+                fontFamily: '"DM Sans", sans-serif', fontWeight: 500, fontSize: 14,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+                transition: 'box-shadow 0.2s, transform 0.1s',
+              }}
+              onMouseEnter={(e) => { if (!busy) { e.currentTarget.style.boxShadow = '0 4px 18px rgba(0,0,0,0.5)'; e.currentTarget.style.transform = 'translateY(-1px)'; } }}
+              onMouseLeave={(e) => { e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.4)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+            >
+              {busy
+                ? <div style={{ width: 18, height: 18, border: '2px solid #bbb', borderTopColor: 'transparent', borderRadius: '50%', animation: 'pgSpin 0.7s linear infinite' }} />
+                : <Image src="/images/google-logo.svg" alt="Google" width={18} height={18} unoptimized />
+              }
+              <span>{busy ? 'Signing in…' : 'Continue with Google'}</span>
+            </button>
+
+            {/* Divider */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '22px 0' }}>
+              <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.07)' }} />
+              <span style={{ fontFamily: '"Share Tech Mono", monospace', fontSize: 10, color: '#333', letterSpacing: '0.06em' }}>OR</span>
+              <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.07)' }} />
             </div>
 
-            {/* Google tab */}
-            {tab === 'google' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <button onClick={handleGoogle} disabled={busy}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, width: '100%', padding: '12px 0', background: busy ? '#e0e0e0' : '#ffffff', color: '#1a1a1a', border: 'none', borderRadius: 10, cursor: busy ? 'not-allowed' : 'pointer', fontFamily: '"DM Sans", sans-serif', fontWeight: 600, fontSize: 14, transition: 'background 0.2s' }}
-                >
-                  {busy
-                    ? <div style={{ width: 18, height: 18, border: '2px solid #aaa', borderTopColor: 'transparent', borderRadius: '50%', animation: 'pgSpin 0.8s linear infinite' }} />
-                    : <Image src="/images/google-logo.svg" alt="Google" width={18} height={18} />
-                  }
-                  {busy ? 'Signing in…' : 'Continue with Google'}
-                </button>
-                <p style={{ fontFamily: '"DM Sans", sans-serif', fontSize: 11, color: '#555', textAlign: 'center', margin: 0 }}>
-                  A popup will open. Allow popups if blocked.
-                </p>
-              </div>
-            )}
+            {/* Email form */}
+            <form onSubmit={handleEmailSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {emailMode === 'signup' && (
+                <input
+                  type="text" placeholder="Your name" value={name}
+                  onChange={(e) => setName(e.target.value)} autoComplete="name"
+                  style={INPUT}
+                  onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(74,240,255,0.35)'; e.currentTarget.style.background = 'rgba(74,240,255,0.04)'; }}
+                  onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'; e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+                />
+              )}
+              <input
+                type="email" placeholder="Email address" value={email}
+                onChange={(e) => setEmail(e.target.value)} autoComplete="email" required
+                style={INPUT}
+                onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(74,240,255,0.35)'; e.currentTarget.style.background = 'rgba(74,240,255,0.04)'; }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'; e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+              />
+              <input
+                type="password" placeholder="Password"
+                value={password} onChange={(e) => setPassword(e.target.value)}
+                autoComplete={emailMode === 'signin' ? 'current-password' : 'new-password'} required
+                style={INPUT}
+                onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(74,240,255,0.35)'; e.currentTarget.style.background = 'rgba(74,240,255,0.04)'; }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'; e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+              />
 
-            {/* Email tab */}
-            {tab === 'email' && (
-              <form onSubmit={handleEmailSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
-                {/* Mode toggle */}
-                <div style={{ display: 'flex', gap: 8, marginBottom: 2 }}>
-                  {(['signup', 'signin'] as EmailMode[]).map((m) => (
-                    <button key={m} type="button" onClick={() => { setEmailMode(m); clearError(); }}
-                      style={{ padding: '5px 14px', border: `1px solid ${emailMode === m ? '#4AF0FF' : 'rgba(255,255,255,0.1)'}`, borderRadius: 6, background: emailMode === m ? 'rgba(74,240,255,0.08)' : 'transparent', color: emailMode === m ? '#4AF0FF' : '#9a9a9a', fontFamily: '"Share Tech Mono", monospace', fontSize: 11, letterSpacing: '0.04em', cursor: 'pointer', transition: 'all 0.2s' }}
-                    >
-                      {m === 'signup' ? 'CREATE ACCOUNT' : 'SIGN IN'}
-                    </button>
-                  ))}
-                </div>
+              <button
+                type="submit" disabled={busy}
+                style={{
+                  padding: '13px 0', marginTop: 2,
+                  background: busy ? 'rgba(74,240,255,0.35)' : '#4AF0FF',
+                  color: '#0a0a0a', border: 'none', borderRadius: 12,
+                  cursor: busy ? 'not-allowed' : 'pointer',
+                  fontFamily: '"Rajdhani", sans-serif', fontWeight: 600, fontSize: 15, letterSpacing: '0.07em',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  boxShadow: busy ? 'none' : '0 0 20px rgba(74,240,255,0.25)',
+                  transition: 'box-shadow 0.2s, transform 0.1s',
+                }}
+                onMouseEnter={(e) => { if (!busy) { e.currentTarget.style.boxShadow = '0 0 32px rgba(74,240,255,0.45)'; e.currentTarget.style.transform = 'translateY(-1px)'; } }}
+                onMouseLeave={(e) => { e.currentTarget.style.boxShadow = '0 0 20px rgba(74,240,255,0.25)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+              >
+                {busy && <div style={{ width: 15, height: 15, border: '2px solid rgba(0,0,0,0.25)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'pgSpin 0.7s linear infinite' }} />}
+                {busy ? 'Please wait…' : emailMode === 'signin' ? 'SIGN IN →' : 'CREATE ACCOUNT →'}
+              </button>
+            </form>
 
-                {emailMode === 'signup' && (
-                  <input type="text" placeholder="Your name" value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" style={INPUT} />
-                )}
-                <input type="email" placeholder="Email address" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required style={INPUT} />
-                <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={emailMode === 'signin' ? 'current-password' : 'new-password'} required style={INPUT} />
-
-                <button type="submit" disabled={busy}
-                  style={{ padding: '12px 0', background: busy ? 'rgba(74,240,255,0.4)' : '#4AF0FF', color: '#0a0a0a', border: 'none', borderRadius: 10, cursor: busy ? 'not-allowed' : 'pointer', fontFamily: '"Rajdhani", sans-serif', fontWeight: 600, fontSize: 15, letterSpacing: '0.06em', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'background 0.2s', marginTop: 2 }}
-                >
-                  {busy && <div style={{ width: 16, height: 16, border: '2px solid rgba(0,0,0,0.3)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'pgSpin 0.8s linear infinite' }} />}
-                  {busy ? 'Please wait…' : emailMode === 'signin' ? 'Sign In' : 'Create Account'}
-                </button>
-              </form>
-            )}
+            {/* Mode toggle */}
+            <p style={{ marginTop: 16, textAlign: 'center', fontFamily: '"DM Sans", sans-serif', fontSize: 13, color: '#555' }}>
+              {emailMode === 'signup' ? 'Already have an account? ' : 'New here? '}
+              <button
+                onClick={() => { setEmailMode(emailMode === 'signup' ? 'signin' : 'signup'); clearError(); }}
+                style={{ background: 'none', border: 'none', color: '#4AF0FF', cursor: 'pointer', fontFamily: '"DM Sans", sans-serif', fontSize: 13, padding: 0, fontWeight: 500 }}
+              >
+                {emailMode === 'signup' ? 'Sign in' : 'Create account'}
+              </button>
+            </p>
 
             {/* Error */}
             {error && (
-              <p style={{ marginTop: 12, padding: '9px 12px', background: 'rgba(220,80,80,0.12)', border: '1px solid rgba(220,80,80,0.3)', borderRadius: 8, color: '#ff8080', fontFamily: '"Share Tech Mono", monospace', fontSize: 12 }}>
+              <div style={{ marginTop: 14, padding: '10px 14px', background: 'rgba(220,80,80,0.08)', border: '1px solid rgba(220,80,80,0.25)', borderRadius: 10, color: '#ff8080', fontFamily: '"Share Tech Mono", monospace', fontSize: 11, letterSpacing: '0.04em' }}>
                 {error}
-              </p>
+              </div>
             )}
           </div>
 
-          {/* Privacy */}
-          <p style={{ marginTop: 14, textAlign: 'center', fontFamily: '"DM Sans", sans-serif', fontSize: 11, color: 'rgba(255,255,255,0.22)', lineHeight: 1.6 }}>
-            By continuing you agree to the{' '}
-            <a href="https://dgentechnologies.com/privacy-policy" target="_blank" rel="noopener noreferrer" style={{ color: '#4AF0FF', textDecoration: 'none' }}>Privacy Policy</a>.
+          {/* Privacy note */}
+          <p style={{ marginTop: 16, textAlign: 'center', fontFamily: '"DM Sans", sans-serif', fontSize: 11, color: 'rgba(255,255,255,0.18)', lineHeight: 1.6 }}>
+            By continuing you agree to our{' '}
+            <a href="https://dgentechnologies.com/privacy-policy" target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(74,240,255,0.5)', textDecoration: 'none' }}>Privacy Policy</a>.
           </p>
         </div>
 
         <style>{`
           ${FONTS}
           @keyframes pgSpin { to { transform: rotate(360deg); } }
-          input:focus { border-color: rgba(74,240,255,0.4) !important; box-shadow: 0 0 0 2px rgba(74,240,255,0.1); }
+          input::placeholder { color: #444; }
         `}</style>
       </div>
     );

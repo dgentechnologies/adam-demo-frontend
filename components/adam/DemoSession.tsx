@@ -31,7 +31,7 @@ export function DemoSession({ user, onSessionEnded, fullscreen }: DemoSessionPro
   const [transcripts,    setTranscripts]    = useState<TranscriptEntry[]>([]);
   const [isRecording,    setIsRecording]    = useState(false);
   const [turnCount,      setTurnCount]      = useState(0);
-  const [turnsAllowed,   setTurnsAllowed]   = useState(20);
+  const [turnsAllowed,   setTurnsAllowed]   = useState(1);
   const [durationMs,     setDurationMs]     = useState(300_000);
   const [endReason,      setEndReason]      = useState<string | null>(null);
   const [errorMsg,       setErrorMsg]       = useState<string | null>(null);
@@ -257,7 +257,7 @@ export function DemoSession({ user, onSessionEnded, fullscreen }: DemoSessionPro
           <p className="text-xl font-bold mb-1">Session ended</p>
           <p className="text-gray-400 text-sm">
             {endReason === 'cap_reached'
-              ? 'You used all 20 turns — impressive.'
+              ? 'Session complete.'
               : endReason === 'timeout'
               ? '5 minutes are up.'
               : 'Goodbye.'}
