@@ -12,6 +12,7 @@ import {
   signInWithPopup,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  updateProfile,
   signOut as firebaseSignOut,
   type User,
 } from 'firebase/auth';
@@ -22,7 +23,7 @@ interface AuthContextValue {
   loading: boolean;
   signInWithGoogle:        () => Promise<void>;
   signInWithEmail:         (email: string, password: string) => Promise<void>;
-  signUpWithEmail:         (email: string, password: string) => Promise<void>;
+  signUpWithEmail:         (email: string, password: string, name?: string) => Promise<void>;
   signOut:                 () => Promise<void>;
 }
 
@@ -59,8 +60,9 @@ export function FirebaseAuthProvider({ children }: { children: ReactNode }) {
     await signInWithEmailAndPassword(auth, email, password);
   };
 
-  const signUpWithEmail = async (email: string, password: string) => {
-    await createUserWithEmailAndPassword(auth, email, password);
+  const signUpWithEmail = async (email: string, password: string, name?: string) => {
+    const cred = await createUserWithEmailAndPassword(auth, email, password);
+    if (name?.trim()) await updateProfile(cred.user, { displayName: name.trim() });
   };
 
   const signOut = async () => {
