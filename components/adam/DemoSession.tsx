@@ -111,6 +111,12 @@ export function DemoSession({ user, onSessionEnded, fullscreen }: DemoSessionPro
     }
   }, [enqueueAudio]);
 
+  const stateRef = useRef<SessionState>('connecting');
+
+  // Keep stateRef in sync so ws.onclose can read the current value without a
+  // stale closure (the useEffect has empty deps, so `state` would be frozen).
+  useEffect(() => { stateRef.current = state; }, [state]);
+
   // ── Connect on mount ──────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -152,7 +158,7 @@ export function DemoSession({ user, onSessionEnded, fullscreen }: DemoSessionPro
         };
 
         ws.onclose = () => {
-          if (state !== 'ended' && state !== 'error') {
+          if (stateRef.current !== 'ended' && stateRef.current !== 'error') {
             setState('ended');
             setEndReason('connection_closed');
           }

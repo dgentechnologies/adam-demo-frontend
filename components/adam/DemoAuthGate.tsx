@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import Image from 'next/image';
 
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;600&family=Share+Tech+Mono&family=DM+Sans:wght@300;400;500&display=swap');`;
 
@@ -107,13 +106,19 @@ function AuthRobotFace({
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
     const schedule = (): ReturnType<typeof setTimeout> =>
       setTimeout(() => {
+        if (cancelled) return;
         setBlinking(true);
-        setTimeout(() => { setBlinking(false); schedule(); }, 150);
+        setTimeout(() => {
+          if (cancelled) return;
+          setBlinking(false);
+          schedule();
+        }, 150);
       }, Math.random() * 4000 + 3000);
     const t = schedule();
-    return () => clearTimeout(t);
+    return () => { cancelled = true; clearTimeout(t); };
   }, []);
 
   useEffect(() => {
@@ -318,9 +323,10 @@ export function DemoAuthGate({
         {/* Vertical right-edge scan line */}
         <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 1, background: 'linear-gradient(180deg, transparent 0%, rgba(74,240,255,0.22) 30%, rgba(74,240,255,0.4) 50%, rgba(74,240,255,0.22) 70%, transparent 100%)' }} />
 
-        {/* Logo */}
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          <Image src="/images/logo.png" alt="DGEN Technologies" width={120} height={40} priority />
+        {/* Brand wordmark */}
+        <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontFamily: '"Rajdhani", sans-serif', fontWeight: 600, fontSize: 18, letterSpacing: '0.1em', color: '#f0f0f0' }}>DGEN</span>
+          <span style={{ fontFamily: '"Share Tech Mono", monospace', fontSize: 9, color: 'rgba(74,240,255,0.6)', letterSpacing: '0.14em', marginTop: 2 }}>TECHNOLOGIES</span>
         </div>
 
         {/* ADAM mascot */}
@@ -391,9 +397,10 @@ export function DemoAuthGate({
       >
         <div style={{ width: '100%', maxWidth: 400 }}>
 
-          {/* Mobile logo */}
-          <div style={{ display: 'none', justifyContent: 'center', marginBottom: 32 }} className="mobile-logo-only">
-            <Image src="/images/logo.png" alt="DGEN Technologies" width={100} height={34} priority />
+          {/* Mobile brand badge */}
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginBottom: 24 }} className="lg:hidden">
+            <span style={{ fontFamily: '"Rajdhani", sans-serif', fontWeight: 600, fontSize: 16, letterSpacing: '0.1em', color: '#f0f0f0' }}>DGEN</span>
+            <span style={{ fontFamily: '"Share Tech Mono", monospace', fontSize: 9, color: 'rgba(74,240,255,0.6)', letterSpacing: '0.14em' }}>TECHNOLOGIES</span>
           </div>
 
           {/* Step indicator */}
