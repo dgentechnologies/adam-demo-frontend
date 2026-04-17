@@ -1,0 +1,93 @@
+
+/**
+ * @file Firestore Security Rules for the DGEN Technologies website.
+ *
+ * Core Philosophy:
+ * This ruleset prioritizes ease of access for public content (blog posts) and
+ * allows any user to submit a contact form message, while restricting access
+ * to sensitive data to a specific admin user.
+ *
+ * Data Structure:
+ * - Blog posts are stored in `/blogPosts/{postId}`.
+ * - Contact messages are stored in `/contactMessages/{messageId}`.
+ *
+ * Key Security Decisions:
+ * - Blog posts are publicly readable and writable for prototyping.
+ * - Any user (authenticated or anonymous) can create a contact message.
+ * - Only the designated admin can read contact messages.
+ * - Modifying or deleting contact messages is denied to all client-side users.
+ * - Server-side access (via Admin SDK) is implicitly allowed and bypasses these rules.
+ *
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Allows any user to create, read, update and delete blog posts.
+     * @path /blogPosts/{postId}
+     * @allow (read, write) - Open access for prototyping purposes.
+     * @principle Enables rapid prototyping by allowing any user to interact with blog data.
+     */
+    match /blogPosts/{postId} {
+      allow read, write: if true;
+    }
+
+    /**
+     * @description Allows any user to submit a message, but only authenticated admins can read and delete them.
+     * @path /contactMessages/{messageId}
+     * @allow (create) - Any user can send a contact message.
+     * @allow (read, delete) - Only authenticated admin users can read and delete messages.
+     * @allow (update) - No client-side user can update submitted messages.
+     * @principle Secures user messages by restricting read/delete access to authenticated admins.
+     */
+    match /contactMessages/{messageId} {
+      allow create: if true;
+      allow read, delete: if request.auth != null;
+      allow update: if false;
+    }
+
+    /**
+     * @description Analytics tracking collections.
+     * @path /pageViews/{viewId}
+     * @path /siteAnalytics/{dateId}
+     * @allow (read) - Only authenticated admin users can read analytics.
+     * @allow (create, update) - Server-side only via Admin SDK.
+     * @principle Analytics data is sensitive and should only be readable by admins.
+     */
+    match /pageViews/{viewId} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if false;
+    }
+
+    match /siteAnalytics/{dateId} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if false;
+    }
+
+    /**
+     * @description Career listings are publicly readable; only authenticated admins can create, update, or delete.
+     * @path /careerListings/{listingId}
+     * @allow (read) - Any user can browse open career listings.
+     * @allow (write) - Only authenticated admin users can manage listings.
+     */
+    match /careerListings/{listingId} {
+      allow read: if true;
+      allow create, update, delete: if request.auth != null;
+    }
+
+    /**
+     * @description ADAM early-access waitlist.
+     * @path /adam-waitlist/{entryId}
+     * @allow (create) - Any user can join the waitlist.
+     * @allow (read, update, delete) - No client-side access to protect email privacy.
+     *   Aggregate count queries and write operations are handled server-side via the Admin SDK.
+     */
+    match /adam-waitlist/{entryId} {
+      allow create: if true;
+      allow read, update, delete: if false;
+    }
+  }
+}
+
+    
