@@ -87,6 +87,56 @@ service cloud.firestore {
       allow create: if true;
       allow read, update, delete: if false;
     }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // ADAM Demo App Collections
+    // All write-heavy operations (session caps, upserts) are performed
+    // server-side via the Admin SDK (relay server + Next.js API routes) and
+    // therefore bypass these rules entirely.
+    // ──────────────────────────────────────────────────────────────────────────
+
+    /**
+     * @description ADAM demo user profiles — session caps, last-seen timestamps.
+     * @path /adamUsers/{uid}
+     * @allow (read) - Authenticated users can read only their own document.
+     * @allow (write) - Denied to all clients; managed exclusively by Admin SDK
+     *   (relay-token API route and relay server upsertUser/incrementSessionsToday).
+     */
+    match /adamUsers/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    /**
+     * @description ADAM demo session records — created and closed by the relay server.
+     * @path /demoSessions/{sessionId}
+     * @allow (read, write) - Denied to all clients; relay server uses Admin SDK.
+     */
+    match /demoSessions/{sessionId} {
+      allow read, write: if false;
+    }
+
+    /**
+     * @description ADAM demo onboarding data — name, use-case, collected after first sign-in.
+     * @path /onboarding/{uid}
+     * @allow (read, write) - Authenticated users can read and write only their own document.
+     * @principle Each user owns exactly one onboarding document keyed by their UID.
+     */
+    match /onboarding/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    /**
+     * @description ADAM demo waitlist entries — submitted via the /adam/waitlist page.
+     * @path /waitlist/{entryId}
+     * @allow (read, write) - Denied to all clients; written server-side via
+     *   the Next.js /api/waitlist route (Admin SDK) and the relay server.
+     * @note Distinct from /adam-waitlist (main website). This collection is
+     *   managed exclusively by the relay server and Next.js API routes.
+     */
+    match /waitlist/{entryId} {
+      allow read, write: if false;
+    }
   }
 }
 
