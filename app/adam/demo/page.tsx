@@ -1,7 +1,7 @@
 'use client';
 
+import { createPortal } from 'react-dom';
 import { useEffect, useState } from 'react';
-import Image from 'next/image';
 import { doc, getDoc } from 'firebase/firestore';
 import { useAuth } from '@/components/FirebaseAuthProvider';
 import { DemoSession } from '@/components/adam/DemoSession';
@@ -18,15 +18,21 @@ type DemoOverlay = 'welcome' | 'active' | 'ended';
 
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;600&family=Share+Tech+Mono&family=DM+Sans:wght@300;400;500&display=swap');`;
 
-// ── Shared input styles ───────────────────────────────────────────────────────
-const INPUT: React.CSSProperties = {
-  width: '100%', padding: '12px 16px',
-  background: 'rgba(255,255,255,0.04)',
-  border: '1px solid rgba(255,255,255,0.09)',
-  borderRadius: 10, color: '#f0f0f0',
-  fontFamily: '"DM Sans", sans-serif', fontSize: 14,
-  outline: 'none', boxSizing: 'border-box',
-  transition: 'border-color 0.2s',
+// ── Portal: renders children into document.body to avoid transform stacking ──
+function Portal({ children }: { children: React.ReactNode }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
+  return createPortal(children, document.body);
+}
+
+// ── Ambient background shared by overlays ─────────────────────────────────────
+const OVERLAY_BG_STYLES: React.CSSProperties = {
+  position: 'fixed', inset: 0, zIndex: 9999,
+  background: '#080a0c',
+  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+  padding: '24px 20px',
+  overflow: 'hidden',
 };
 
 // ── Spinner ───────────────────────────────────────────────────────────────────
