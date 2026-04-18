@@ -8,7 +8,7 @@ import { DemoSession } from '@/components/adam/DemoSession';
 import { AdamFace } from '@/components/adam/AdamFace';
 import { OnboardingForm } from '@/components/adam/OnboardingForm';
 import { DemoAuthGate } from '@/components/adam/DemoAuthGate';
-import { db } from '@/lib/firebase';
+import { getClientDb } from '@/lib/firebase';
 
 const WAITLIST_URL = 'https://dgentechnologies.com/adam#waitlist';
 
@@ -230,7 +230,7 @@ export default function AdamDemoPage() {
   useEffect(() => {
     if (!user || loading) return;
     setStep('checking');
-    getDoc(doc(db, 'onboarding', user.uid))
+    getDoc(doc(getClientDb(), 'onboarding', user.uid))
       .then((snap) => setStep(snap.exists() && snap.data()?.completed ? 'demo' : 'onboarding'))
       .catch(() => setStep('demo'));
   }, [user, loading]);

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import type { User } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { getClientDb } from '@/lib/firebase';
 
 const WHERE_OPTIONS = [
   'Select an option…',
@@ -80,7 +80,7 @@ export function OnboardingForm({ user, onComplete }: OnboardingFormProps) {
     setBusy(true);
     setError('');
     try {
-      await setDoc(doc(db, 'onboarding', user.uid), {
+      await setDoc(doc(getClientDb(), 'onboarding', user.uid), {
         uid:          user.uid,
         email:        user.email,
         display_name: user.displayName ?? '',
