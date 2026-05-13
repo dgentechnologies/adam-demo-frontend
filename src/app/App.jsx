@@ -1865,11 +1865,11 @@ export default function App() {
           border-radius: 18px;
           padding: 16px;
           min-height: 220px;
-          background: rgba(255, 255, 255, 0.5);
-          border: 1px solid rgba(18, 20, 16, 0.06);
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-          backdrop-filter: blur(8px);
-          -webkit-backdrop-filter: blur(8px);
+          background: rgba(255, 255, 255, 0.7);
+          border: 1px solid rgba(18, 20, 16, 0.08);
+          box-shadow: 0 10px 32px rgba(0, 0, 0, 0.16);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
         }
 
         .console-card-flex {
@@ -2037,11 +2037,11 @@ export default function App() {
           min-height: 0;
           display: flex;
           flex-direction: column;
-          background: rgba(255, 255, 255, 0.35);
-          border: 1px solid rgba(18, 20, 16, 0.06);
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-          backdrop-filter: blur(8px);
-          -webkit-backdrop-filter: blur(8px);
+          background: rgba(255, 255, 255, 0.7);
+          border: 1px solid rgba(18, 20, 16, 0.08);
+          box-shadow: 0 10px 32px rgba(0, 0, 0, 0.16);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
         }
 
         .demo-hero-image-wrap {
@@ -2120,11 +2120,11 @@ export default function App() {
           display: grid;
           grid-template-columns: 1fr auto;
           gap: 10px;
-          background: rgba(255, 255, 255, 0.35);
-          border: 1px solid rgba(18, 20, 16, 0.06);
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-          backdrop-filter: blur(8px);
-          -webkit-backdrop-filter: blur(8px);
+          background: rgba(255, 255, 255, 0.7);
+          border: 1px solid rgba(18, 20, 16, 0.08);
+          box-shadow: 0 10px 32px rgba(0, 0, 0, 0.16);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
         }
 
         .console-input {
@@ -2216,11 +2216,11 @@ export default function App() {
           display: flex;
           flex-direction: column;
           overflow: hidden;
-          background: rgba(255, 255, 255, 0.35);
-          border: 1px solid rgba(18, 20, 16, 0.06);
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-          backdrop-filter: blur(8px);
-          -webkit-backdrop-filter: blur(8px);
+          background: rgba(255, 255, 255, 0.7);
+          border: 1px solid rgba(18, 20, 16, 0.08);
+          box-shadow: 0 10px 32px rgba(0, 0, 0, 0.16);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
         }
 
         .console-chat-head {
