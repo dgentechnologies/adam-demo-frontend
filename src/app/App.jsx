@@ -825,10 +825,12 @@ function DemoPage({ push }) {
 
       <div className={`demo-welcome-overlay ${welcomeOpen ? 'show' : ''}`} aria-hidden={!welcomeOpen}>
         <div className="glass-panel demo-welcome-card">
+          <span className="demo-welcome-kicker">ADAM EXCLUSIVE PREVIEW</span>
           <h1>Welcome to the ADAM Experience</h1>
-          <p>Your session is ready. ADAM is online and awaiting your first command.</p>
+          <p>Your private 5-minute session is ready. ADAM is online and standing by for your first command.</p>
+          <p className="demo-welcome-note">Priority early-access invitations are sent first to users who complete this guided preview.</p>
           <button className="demo-welcome-button" type="button" onClick={beginSession}>
-            Begin Session
+            Start Premium Live Session
           </button>
         </div>
       </div>
@@ -2256,13 +2258,28 @@ export default function App() {
 
         .demo-welcome-card {
           width: 100%;
-          max-width: 340px;
-          border-radius: 14px;
-          padding: 20px;
+          max-width: 420px;
+          border-radius: 18px;
+          padding: 28px;
           text-align: center;
           display: grid;
-          gap: 10px;
+          gap: 12px;
           box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+        }
+
+        .demo-welcome-kicker {
+          display: inline-flex;
+          justify-self: center;
+          align-items: center;
+          border-radius: 999px;
+          padding: 6px 12px;
+          font-size: 10px;
+          font-weight: 800;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: rgba(20, 25, 22, 0.78);
+          background: rgba(25, 179, 92, 0.12);
+          border: 1px solid rgba(25, 179, 92, 0.24);
         }
 
         .demo-welcome-card h1 {
@@ -2275,29 +2292,39 @@ export default function App() {
 
         .demo-welcome-card p {
           margin: 0;
-          font-size: 12px;
+          font-size: 13px;
           line-height: 1.5;
           color: rgba(68, 73, 51, 0.72);
+        }
+
+        .demo-welcome-note {
+          font-size: 12px;
+          color: rgba(46, 52, 35, 0.78);
+          line-height: 1.45;
         }
 
         .demo-welcome-button {
           width: 100%;
           border: 0;
-          border-radius: 10px;
-          padding: 12px 16px;
+          border-radius: 14px;
+          padding: 16px 20px;
           background: var(--primary);
           color: #ffffff;
           font-family: 'Manrope', sans-serif;
-          font-size: 12px;
+          font-size: 13px;
           font-weight: 800;
-          letter-spacing: 0.12em;
+          letter-spacing: 0.14em;
           text-transform: uppercase;
           cursor: pointer;
-          box-shadow: 0 12px 26px rgba(25, 179, 92, 0.25);
+          min-height: 56px;
+          box-shadow: 0 14px 32px rgba(25, 179, 92, 0.32);
+          transition: transform 140ms ease, box-shadow 140ms ease, filter 140ms ease;
         }
 
         .demo-welcome-button:hover {
-          filter: brightness(0.98);
+          transform: translateY(-1px);
+          filter: brightness(1.02);
+          box-shadow: 0 18px 36px rgba(25, 179, 92, 0.38);
         }
 
         @keyframes wave {
