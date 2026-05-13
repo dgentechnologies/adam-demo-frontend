@@ -92,6 +92,10 @@ async function apiOnboarding(payload) {
   return postJSON('/api/onboarding', payload);
 }
 
+async function apiDemoStart(payload) {
+  return postJSON('/api/demo/start', payload);
+}
+
 async function apiDemoEnd(payload) {
   return postJSON('/api/demo/end', payload);
 }
@@ -698,7 +702,7 @@ function formatRemaining(totalSeconds) {
 }
 
 function DemoPage({ push }) {
-  const { userId, onboardingData } = useAppContext();
+  const { userId, authToken, onboardingData } = useAppContext();
   const [welcomeOpen, setWelcomeOpen] = useState(true);
   const [demoStarted, setDemoStarted] = useState(false);
   const [timeLeft, setTimeLeft] = useState(300);
@@ -733,13 +737,13 @@ function DemoPage({ push }) {
     didEndRef.current = true;
     clearInterval(intervalRef.current);
     setEndOpen(true);
-    apiDemoEnd({ userId, endTime: Date.now() });
-  }, [timeLeft, userId]);
+    apiDemoEnd({ userId, idToken: authToken, endTime: Date.now() });
+  }, [timeLeft, userId, authToken]);
 
   const beginSession = async () => {
     setWelcomeOpen(false);
     setDemoStarted(true);
-    await apiDemoStart({ userId, startTime: Date.now() });
+    await apiDemoStart({ userId, idToken: authToken, startTime: Date.now() });
   };
 
   const timerColor = timeLeft <= 30 ? '#dc2626' : timeLeft <= 60 ? '#d97706' : '#56e083';
@@ -980,7 +984,9 @@ function RouterView() {
 
 export default function App() {
   useEffect(() => {
-    installMockFetch();
+    if (!FIREBASE_ENABLED) {
+      installMockFetch();
+    }
   }, []);
 
   return (

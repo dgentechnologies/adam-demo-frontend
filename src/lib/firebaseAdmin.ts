@@ -1,4 +1,5 @@
 import { cert, getApps, initializeApp, type App } from 'firebase-admin/app';
+import { getAuth, type Auth } from 'firebase-admin/auth';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 
 function getAdminDatabaseId(): string {
@@ -32,6 +33,17 @@ export const adminDb = new Proxy({} as Firestore, {
 
     return typeof value === 'function'
       ? (value as (...args: unknown[]) => unknown).bind(db)
+      : value;
+  },
+});
+
+export const adminAuth = new Proxy({} as Auth, {
+  get(_target, prop: string) {
+    const auth = getAuth(getAdminApp());
+    const value = (auth as unknown as Record<string, unknown>)[prop];
+
+    return typeof value === 'function'
+      ? (value as (...args: unknown[]) => unknown).bind(auth)
       : value;
   },
 });
