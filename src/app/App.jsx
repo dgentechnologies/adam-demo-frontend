@@ -194,9 +194,9 @@ function FooterBar() {
 
 function LoginPage({ push }) {
   const { setAuthToken, setUserId, setEmail, setOnboardingData } = useAppContext();
-  const [firstName, setFirstName] = useState('Jane');
-  const [lastName, setLastName] = useState('Doe');
-  const [emailValue, setEmailValue] = useState('jane@example.com');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [emailValue, setEmailValue] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
