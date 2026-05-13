@@ -6,7 +6,6 @@ import { randomUUID } from 'crypto';
 import { SignJWT } from 'jose';
 import { adminAuth, adminDb } from '@/lib/firebaseAdmin';
 
-const MAX_SESSIONS_LIFETIME = 1;
 const MAX_ID_TOKEN_LENGTH = 8192;
 
 function parseTesterUids(raw: string | undefined): Set<string> {
@@ -90,16 +89,6 @@ export async function POST(req: NextRequest) {
         { merge: true },
       );
 
-      const totalSessions = Number(data.totalDemoSessions ?? 0);
-      if (!TESTER_UIDS.has(uid) && totalSessions >= MAX_SESSIONS_LIFETIME) {
-        return Response.json(
-          {
-            error:
-              'You have already used your ADAM demo session. Join the waitlist to get the full experience: dgentechnologies.com/products/adam#waitlist',
-          },
-          { status: 429 },
-        );
-      }
     } else {
       await userRef.set({
         uid,
