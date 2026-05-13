@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ADAM — Reconnect</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    font-family: monospace;
+  }
+  .label {
+    color: #fff;
+    font-size: 11px;
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    margin-bottom: 28px;
+    opacity: 0.3;
+  }
+  svg { width: 340px; height: 220px; overflow: visible; }
+
+  .star-l { animation: spin-star 1.2s linear infinite; transform-origin: 105px 88px; }
+  .star-r { animation: spin-star 1.2s linear infinite reverse 0.6s; transform-origin: 215px 88px; }
+  .mouth { animation: loading-pulse 1.4s ease-in-out infinite; transform-origin: 160px 140px; }
+  .dot-1 { animation: dot-seq 1.4s steps(1) infinite; }
+  .dot-2 { animation: dot-seq 1.4s steps(1) infinite 0.47s; }
+  .dot-3 { animation: dot-seq 1.4s steps(1) infinite 0.94s; }
+  .ring-l { animation: ring-pulse 1.2s ease-out infinite; transform-origin: 105px 88px; }
+  .ring-r { animation: ring-pulse 1.2s ease-out infinite 0.6s; transform-origin: 215px 88px; }
+
+  @keyframes spin-star {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  @keyframes loading-pulse {
+    0%,100% { transform: scaleX(1); opacity: 0.5; }
+    50% { transform: scaleX(1.18); opacity: 1; }
+  }
+  @keyframes dot-seq {
+    0%,66%,100% { opacity: 0.15; }
+    33% { opacity: 1; }
+  }
+  @keyframes ring-pulse {
+    0% { transform: scale(1); opacity: 0.4; }
+    60%,100% { transform: scale(2.2); opacity: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="label">ADAM · Reconnect</div>
+<svg viewBox="0 0 320 200" xmlns="http://www.w3.org/2000/svg">
+
+  <!-- Pulsing rings behind stars -->
+  <circle class="ring-l" cx="105" cy="88" r="22" stroke="#fff" stroke-width="1" fill="none" opacity="0.3"/>
+  <circle class="ring-r" cx="215" cy="88" r="22" stroke="#fff" stroke-width="1" fill="none" opacity="0.3"/>
+
+  <!-- Left star / spark eye -->
+  <g class="star-l">
+    <line x1="84" y1="88" x2="126" y2="88" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+    <line x1="105" y1="67" x2="105" y2="109" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+    <line x1="90" y1="73" x2="120" y2="103" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="120" y1="73" x2="90" y2="103" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+  </g>
+  <!-- Right star / spark eye -->
+  <g class="star-r">
+    <line x1="194" y1="88" x2="236" y2="88" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+    <line x1="215" y1="67" x2="215" y2="109" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+    <line x1="200" y1="73" x2="230" y2="103" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="230" y1="73" x2="200" y2="103" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+  </g>
+
+  <!-- Flat mouth -->
+  <g class="mouth">
+    <line x1="130" y1="140" x2="190" y2="140" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+  </g>
+
+  <!-- Loading dots -->
+  <circle class="dot-1" cx="150" cy="162" r="3.5" fill="#fff"/>
+  <circle class="dot-2" cx="160" cy="162" r="3.5" fill="#fff"/>
+  <circle class="dot-3" cx="170" cy="162" r="3.5" fill="#fff"/>
+</svg>
+</body>
+</html>

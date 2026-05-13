@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ADAM — Sleep</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    font-family: monospace;
+  }
+  .label {
+    color: #fff;
+    font-size: 11px;
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    margin-bottom: 28px;
+    opacity: 0.3;
+  }
+  svg { width: 340px; height: 220px; overflow: visible; }
+
+  .face { animation: breathe 5s ease-in-out infinite; transform-origin: 160px 100px; }
+  .zzz-1 { animation: zzz-float 4s ease-in-out infinite; }
+  .zzz-2 { animation: zzz-float 4s ease-in-out infinite 0.5s; }
+  .zzz-3 { animation: zzz-float 4s ease-in-out infinite 1s; }
+  .glow { animation: glow-soft 5s ease-in-out infinite; }
+
+  @keyframes breathe {
+    0%,100% { transform: scaleY(1) translateY(0); }
+    50% { transform: scaleY(0.96) translateY(2px); }
+  }
+  @keyframes zzz-float {
+    0% { transform: translate(0, 0); opacity: 0; }
+    15% { opacity: 0.7; }
+    80% { opacity: 0.3; }
+    100% { transform: translate(14px, -38px); opacity: 0; }
+  }
+  @keyframes glow-soft {
+    0%,100% { opacity: 0.03; }
+    50% { opacity: 0.09; }
+  }
+</style>
+</head>
+<body>
+<div class="label">ADAM · Sleep</div>
+<svg viewBox="0 0 320 200" xmlns="http://www.w3.org/2000/svg">
+
+  <!-- Ambient breath glow -->
+  <ellipse class="glow" cx="160" cy="100" rx="130" ry="80" fill="#fff"/>
+
+  <g class="face">
+    <!-- Left eye closed arc ∪ -->
+    <path d="M 78 85 Q 105 110 132 85"
+      stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <!-- Right eye closed arc -->
+    <path d="M 188 85 Q 215 110 242 85"
+      stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round"/>
+  </g>
+
+  <!-- ZZZ floating sequence -->
+  <g class="zzz-1">
+    <text x="250" y="76" fill="#fff" font-size="16" font-family="monospace" opacity="0.8" font-weight="bold">z</text>
+  </g>
+  <g class="zzz-2">
+    <text x="264" y="60" fill="#fff" font-size="12" font-family="monospace" opacity="0.55">z</text>
+  </g>
+  <g class="zzz-3">
+    <text x="276" y="48" fill="#fff" font-size="9" font-family="monospace" opacity="0.3">z</text>
+  </g>
+</svg>
+</body>
+</html>
