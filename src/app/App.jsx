@@ -169,19 +169,61 @@ function useHashRouter() {
   return { route, push };
 }
 
+function HeaderBar() {
+  return (
+    <header className="header-shell">
+      <div className="header-brand">
+        <span className="brand-mark" aria-hidden="true">
+          <span className="brand-mark-cut" />
+        </span>
+        <span className="brand-text">dgen technologies</span>
+      </div>
+      <button type="button" className="header-link">Log In</button>
+    </header>
+  );
+}
+
+function FooterBar() {
+  return (
+    <footer className="footer-shell">
+      <span>© 2024 DGEN Technologies. All rights reserved.</span>
+      <div className="footer-links">
+        <a href="#">Privacy Policy</a>
+        <a href="#">Terms of Service</a>
+        <a href="#">Contact Support</a>
+      </div>
+    </footer>
+  );
+}
+
 function LoginPage({ push }) {
-  const { setAuthToken, setUserId, setEmail } = useAppContext();
-  const [emailValue, setEmailValue] = useState('');
+  const { setAuthToken, setUserId, setEmail, setOnboardingData } = useAppContext();
+  const [firstName, setFirstName] = useState('Jane');
+  const [lastName, setLastName] = useState('Doe');
+  const [emailValue, setEmailValue] = useState('jane@example.com');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    setLoading(true);
     setError('');
 
+    if (!termsAccepted) {
+      setError('Please agree to the Terms of Service and Privacy Policy.');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+
+    setLoading(true);
     const result = await apiAuthLogin(emailValue, password);
+
     if (!result.ok) {
       setError(result.data.error || 'Unable to sign in');
       setLoading(false);
@@ -191,39 +233,138 @@ function LoginPage({ push }) {
     setAuthToken(result.data.token);
     setUserId(result.data.userId);
     setEmail(emailValue);
+    setOnboardingData((prev) => ({ ...prev, name: `${firstName} ${lastName}`.trim() }));
     setLoading(false);
     push('/onboarding');
   };
 
   return (
-    <main className="screen-center">
-      <section className="card" style={{ maxWidth: 400 }}>
-        <h1 className="logo">ADAM</h1>
-        <p className="tagline">Autonomous Desktop AI Module · DGEN Technologies</p>
+    <main className="site-root">
+      <div className="premium-gradient-bg" aria-hidden="true" />
+      <HeaderBar />
 
-        <form onSubmit={handleSubmit} className="stack">
-          <input
-            className="field"
-            type="email"
-            placeholder="Email"
-            value={emailValue}
-            onChange={(e) => setEmailValue(e.target.value)}
-            required
-          />
-          <input
-            className="field"
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-          {error ? <p className="error-text">{error}</p> : null}
-          <button className="btn" type="submit" disabled={loading}>
-            {loading ? 'Entering...' : 'Enter'}
-          </button>
-        </form>
+      <section className="landing-main">
+        <aside className="landing-left">
+          <div className="landing-left-glow" aria-hidden="true" />
+          <div className="landing-left-content">
+            <h1>Build the future of desktop intelligence.</h1>
+            <p>
+              Join the next generation of autonomous agents. Experience ADAM&apos;s precision in your daily workflow.
+            </p>
+            <div className="feature-list">
+              <article className="feature-row">
+                <span className="feature-icon" aria-hidden="true">⚡</span>
+                <div>
+                  <h3>Lightning Fast Execution</h3>
+                  <p>Sub-second response times for complex task automation.</p>
+                </div>
+              </article>
+              <article className="feature-row">
+                <span className="feature-icon" aria-hidden="true">🛡</span>
+                <div>
+                  <h3>Enterprise-Grade Privacy</h3>
+                  <p>Your data stays yours with local-first processing options.</p>
+                </div>
+              </article>
+            </div>
+          </div>
+        </aside>
+
+        <section className="landing-right">
+          <div className="form-card">
+            <div className="form-heading">
+              <h2>Create an Account</h2>
+              <p>Start your journey with DGEN today.</p>
+            </div>
+
+            <form className="stack-lg" onSubmit={handleSubmit}>
+              <div className="grid-two">
+                <div className="stack-sm">
+                  <label htmlFor="first-name">FIRST NAME</label>
+                  <input
+                    id="first-name"
+                    className="input-light"
+                    type="text"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="stack-sm">
+                  <label htmlFor="last-name">LAST NAME</label>
+                  <input
+                    id="last-name"
+                    className="input-light"
+                    type="text"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="stack-sm">
+                <label htmlFor="email">EMAIL ADDRESS</label>
+                <input
+                  id="email"
+                  className="input-light"
+                  type="email"
+                  value={emailValue}
+                  onChange={(e) => setEmailValue(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="stack-sm">
+                <label htmlFor="password">PASSWORD</label>
+                <input
+                  id="password"
+                  className="input-light"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="stack-sm">
+                <label htmlFor="confirm-password">CONFIRM PASSWORD</label>
+                <input
+                  id="confirm-password"
+                  className="input-light"
+                  type="password"
+                  placeholder="••••••••"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                />
+              </div>
+
+              <label className="terms-row">
+                <input type="checkbox" checked={termsAccepted} onChange={(e) => setTermsAccepted(e.target.checked)} />
+                <span>
+                  I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.
+                </span>
+              </label>
+
+              {error ? <p className="error-text dark">{error}</p> : null}
+
+              <button className="btn-primary" type="submit" disabled={loading}>
+                {loading ? 'Signing Up...' : 'Sign Up'}
+              </button>
+
+              <div className="or-divider">
+                <span>or continue with</span>
+              </div>
+
+              <button type="button" className="btn-google">Google Login</button>
+            </form>
+          </div>
+        </section>
       </section>
+
+      <FooterBar />
     </main>
   );
 }
@@ -246,13 +387,14 @@ function OnboardingPage({ push }) {
   const handleSubmit = async (event) => {
     event.preventDefault();
     const { name, role, interest, referral } = onboardingData;
+
     if (!name || !role || !interest || !referral) {
-      setError('Please complete all fields.');
+      setError('Please complete all onboarding fields.');
       return;
     }
 
-    setError('');
     setLoading(true);
+    setError('');
     const result = await apiOnboarding({ userId, name, role, interest, referral });
     setLoading(false);
 
@@ -265,45 +407,51 @@ function OnboardingPage({ push }) {
   };
 
   return (
-    <main className="screen-center">
-      <section className="card" style={{ maxWidth: 480 }}>
+    <main className="flow-page">
+      <section className="flow-card">
         <div className="step-row" aria-label="step indicator">
           <span className="dot active" />
           <span className="dot" />
           <span className="dot" />
         </div>
 
-        <form onSubmit={handleSubmit} className="stack">
-          <label className="label" htmlFor="full-name">Full name</label>
-          <input
-            id="full-name"
-            className="field"
-            type="text"
-            value={onboardingData.name}
-            onChange={(e) => updateField('name', e.target.value)}
-            required
-          />
+        <h2 className="flow-title">Welcome to ADAM onboarding</h2>
 
-          <label className="label" htmlFor="role">Role</label>
-          <select
-            id="role"
-            className="field"
-            value={onboardingData.role}
-            onChange={(e) => updateField('role', e.target.value)}
-            required
-          >
-            <option value="">Select</option>
-            <option value="Developer">Developer</option>
-            <option value="Researcher">Researcher</option>
-            <option value="Creator">Creator</option>
-            <option value="Business">Business</option>
-            <option value="Other">Other</option>
-          </select>
+        <form className="stack-lg" onSubmit={handleSubmit}>
+          <div className="stack-sm">
+            <label htmlFor="onb-name">Full name</label>
+            <input
+              id="onb-name"
+              className="input-dark"
+              type="text"
+              value={onboardingData.name}
+              onChange={(e) => updateField('name', e.target.value)}
+              required
+            />
+          </div>
 
-          <fieldset className="radio-group">
-            <legend className="label">Primary interest</legend>
+          <div className="stack-sm">
+            <label htmlFor="onb-role">Role</label>
+            <select
+              id="onb-role"
+              className="input-dark"
+              value={onboardingData.role}
+              onChange={(e) => updateField('role', e.target.value)}
+              required
+            >
+              <option value="">Select</option>
+              <option value="Developer">Developer</option>
+              <option value="Researcher">Researcher</option>
+              <option value="Creator">Creator</option>
+              <option value="Business">Business</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          <fieldset className="radio-group-dark">
+            <legend>Primary interest</legend>
             {['Voice control', 'Smart home', 'Productivity', 'Just exploring'].map((option) => (
-              <label className="radio-item" key={option}>
+              <label key={option}>
                 <input
                   type="radio"
                   name="interest"
@@ -316,24 +464,26 @@ function OnboardingPage({ push }) {
             ))}
           </fieldset>
 
-          <label className="label" htmlFor="referral">How did you hear about ADAM?</label>
-          <select
-            id="referral"
-            className="field"
-            value={onboardingData.referral}
-            onChange={(e) => updateField('referral', e.target.value)}
-            required
-          >
-            <option value="">Select</option>
-            <option value="YouTube">YouTube</option>
-            <option value="Twitter/X">Twitter/X</option>
-            <option value="Friend">Friend</option>
-            <option value="Other">Other</option>
-          </select>
+          <div className="stack-sm">
+            <label htmlFor="onb-referral">How did you hear about ADAM?</label>
+            <select
+              id="onb-referral"
+              className="input-dark"
+              value={onboardingData.referral}
+              onChange={(e) => updateField('referral', e.target.value)}
+              required
+            >
+              <option value="">Select</option>
+              <option value="YouTube">YouTube</option>
+              <option value="Twitter/X">Twitter/X</option>
+              <option value="Friend">Friend</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
 
           {error ? <p className="error-text">{error}</p> : null}
 
-          <button className="btn" type="submit" disabled={loading}>
+          <button className="btn-dark" type="submit" disabled={loading}>
             {loading ? 'Continuing...' : 'Continue'}
           </button>
         </form>
@@ -370,17 +520,10 @@ function DemoPage({ push }) {
     }
 
     intervalRef.current = setInterval(() => {
-      setTimeLeft((previous) => {
-        if (previous <= 1) {
-          return 0;
-        }
-        return previous - 1;
-      });
+      setTimeLeft((previous) => (previous <= 1 ? 0 : previous - 1));
     }, 1000);
 
-    return () => {
-      clearInterval(intervalRef.current);
-    };
+    return () => clearInterval(intervalRef.current);
   }, [demoStarted, endOpen]);
 
   useEffect(() => {
@@ -400,39 +543,42 @@ function DemoPage({ push }) {
     await apiDemoStart({ userId, startTime: Date.now() });
   };
 
-  const timerColor = timeLeft <= 30 ? '#ff3b30' : timeLeft <= 60 ? '#ffb347' : '#ffffff';
+  const timerColor = timeLeft <= 30 ? '#dc2626' : timeLeft <= 60 ? '#d97706' : '#56e083';
 
   return (
-    <main className="screen-full">
-      <header className="top-bar">
-        <p className="logo left">ADAM</p>
-        <p className="timer" style={{ color: timerColor }}>
-          {formatRemaining(timeLeft)}
-        </p>
+    <main className="demo-root">
+      <div className="premium-gradient-bg" aria-hidden="true" />
+
+      <header className="demo-topbar">
+        <div className="header-brand">
+          <span className="brand-mark" aria-hidden="true">
+            <span className="brand-mark-cut" />
+          </span>
+          <span className="brand-text">ADAM demo</span>
+        </div>
+        <p className="demo-timer" style={{ color: timerColor }}>{formatRemaining(timeLeft)}</p>
       </header>
 
-      <section className={`demo-shell ${endOpen ? 'frozen' : ''}`}>
+      <section className={`demo-main ${endOpen ? 'frozen' : ''}`}>
         <div className="face-placeholder">[ ADAM face output ]</div>
 
         <div className="input-row">
           <input
-            className="field"
+            className="input-dark"
             type="text"
-            placeholder="Type a message to ADAM"
+            placeholder="Type your query for ADAM"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             disabled={endOpen || !demoStarted}
           />
-          <button className="btn" type="button" disabled={endOpen || !demoStarted}>
-            Send
-          </button>
+          <button className="btn-dark" type="button" disabled={endOpen || !demoStarted}>Send</button>
         </div>
 
         <div className="chip-row">
           {['What can you do?', 'Tell me a joke', 'Control my lights'].map((chip) => (
             <button
               key={chip}
-              className="chip"
+              className="chip-dark"
               type="button"
               disabled={endOpen || !demoStarted}
               onClick={() => setQuery(chip)}
@@ -444,23 +590,19 @@ function DemoPage({ push }) {
       </section>
 
       <div className={`overlay ${welcomeOpen ? 'show' : ''}`} aria-hidden={!welcomeOpen}>
-        <div className="overlay-card">
+        <div className="overlay-card-dark">
           <h2>Welcome, {onboardingData.name || 'there'}</h2>
           <p>
             You have 5 minutes with ADAM. Ask anything, explore freely. Your session begins when you click Start.
           </p>
-          <button className="btn" type="button" onClick={startDemo}>
-            Start demo
-          </button>
+          <button className="btn-dark" type="button" onClick={startDemo}>Start demo</button>
         </div>
       </div>
 
       <div className={`overlay ${endOpen ? 'show' : ''}`} aria-hidden={!endOpen}>
-        <div className="overlay-card">
+        <div className="overlay-card-dark">
           <h2>Your demo session has ended.</h2>
-          <button className="btn" type="button" onClick={() => push('/waitlist')}>
-            Join the waitlist -&gt;
-          </button>
+          <button className="btn-dark" type="button" onClick={() => push('/waitlist')}>Join the waitlist -&gt;</button>
         </div>
       </div>
     </main>
@@ -493,48 +635,61 @@ function WaitlistPage() {
   };
 
   return (
-    <main className="screen-center">
-      <section className="card" style={{ maxWidth: 440 }}>
+    <main className="flow-page">
+      <section className="flow-card">
         {!joined ? (
           <>
-            <h2 className="title">Be the first to get ADAM.</h2>
-            <p className="muted">Early access opens soon. Drop your email and we&apos;ll reach out.</p>
+            <h2 className="flow-title">Be the first to get ADAM.</h2>
+            <p className="flow-subtitle">Early access opens soon. Drop your email and we&apos;ll reach out.</p>
 
-            <form onSubmit={handleSubmit} className="stack">
-              <input
-                className="field"
-                type="text"
-                placeholder="Full name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
-              <input
-                className="field"
-                type="email"
-                placeholder="Email"
-                value={emailValue}
-                onChange={(e) => setEmailValue(e.target.value)}
-                required
-              />
-              <textarea
-                className="field"
-                rows={4}
-                placeholder="Anything you'd like us to know?"
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-              />
+            <form className="stack-lg" onSubmit={handleSubmit}>
+              <div className="stack-sm">
+                <label htmlFor="wl-name">Full name</label>
+                <input
+                  id="wl-name"
+                  className="input-dark"
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="stack-sm">
+                <label htmlFor="wl-email">Email</label>
+                <input
+                  id="wl-email"
+                  className="input-dark"
+                  type="email"
+                  value={emailValue}
+                  onChange={(e) => setEmailValue(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="stack-sm">
+                <label htmlFor="wl-message">Anything you&apos;d like us to know?</label>
+                <textarea
+                  id="wl-message"
+                  className="input-dark"
+                  rows={4}
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                />
+              </div>
+
               {error ? <p className="error-text">{error}</p> : null}
-              <button className="btn" type="submit" disabled={loading}>
+
+              <button className="btn-dark" type="submit" disabled={loading}>
                 {loading ? 'Joining...' : 'Join waitlist'}
               </button>
             </form>
           </>
         ) : (
-          <div className="joined-state">
-            <div className="checkmark" aria-hidden="true">✓</div>
-            <h2 className="title">You&apos;re on the list.</h2>
-            <p className="muted">We&apos;ll be in touch soon. Follow @DGENTech for updates.</p>
+          <div className="joined-state-dark">
+            <div className="checkmark">✓</div>
+            <h2 className="flow-title">You&apos;re on the list.</h2>
+            <p className="flow-subtitle">We&apos;ll be in touch soon. Follow @DGENTech for updates.</p>
           </div>
         )}
       </section>
@@ -576,272 +731,671 @@ export default function App() {
   return (
     <>
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+        :root {
+          --green-main: #56e083;
+          --green-strong: #19b35c;
+          --text-charcoal: #131313;
+          --surface: #ffffff;
+          --surface-container: #f5f5f5;
+          --surface-variant: #f0f2f0;
+          --border-soft: rgba(19, 19, 19, 0.1);
+          --dark-bg: #131313;
+          --dark-surface: #1f1f1f;
+          --dark-border: #353535;
+          --dark-text: #e2e2e2;
+          --dark-muted: #a8a8a8;
+        }
+
         * { box-sizing: border-box; }
+
         html, body {
           margin: 0;
           padding: 0;
-          background: #000000;
-          color: #ffffff;
-          font-family: 'Courier New', Courier, monospace;
-        }
-        main {
-          min-height: 100vh;
           width: 100%;
-          background: #000000;
+          min-height: 100%;
+          font-family: 'Inter', sans-serif;
+          color: var(--text-charcoal);
+          background: var(--surface);
         }
-        .screen-center {
+
+        h1, h2, h3, .brand-text {
+          font-family: 'Space Grotesk', sans-serif;
+        }
+
+        a {
+          color: inherit;
+          text-decoration: none;
+        }
+
+        .site-root {
           min-height: 100vh;
+          display: flex;
+          flex-direction: column;
+          background: var(--surface);
+          position: relative;
+        }
+
+        .premium-gradient-bg {
+          background: linear-gradient(-45deg, #19b35c, #ffffff, #ccff00, #ffffff);
+          background-size: 400% 400%;
+          animation: gradientAnimation 15s ease infinite;
+          position: fixed;
+          inset: 0;
+          z-index: 0;
+          opacity: 0.15;
+          pointer-events: none;
+        }
+
+        @keyframes gradientAnimation {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+
+        .header-shell {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 24px 64px;
+          border-bottom: 1px solid var(--border-soft);
+          background: rgba(255, 255, 255, 0.8);
+          backdrop-filter: blur(12px);
+          z-index: 20;
+        }
+
+        .header-brand {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .brand-mark {
+          width: 32px;
+          height: 32px;
+          border-radius: 999px;
+          background: var(--green-main);
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .brand-mark-cut {
+          width: 16px;
+          height: 16px;
+          border-radius: 0 0 0 999px;
+          background: #ffffff;
+          display: block;
+        }
+
+        .brand-text {
+          font-size: 20px;
+          font-weight: 700;
+          letter-spacing: -0.02em;
+          text-transform: lowercase;
+        }
+
+        .header-link {
+          border: 0;
+          background: transparent;
+          color: var(--text-charcoal);
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+        }
+
+        .landing-main {
+          flex: 1;
+          display: flex;
+          padding-top: 88px;
+          position: relative;
+          z-index: 1;
+        }
+
+        .landing-left {
+          width: 50%;
+          background: var(--surface-container);
+          position: relative;
+          overflow: hidden;
+          display: none;
+        }
+
+        .landing-left-glow {
+          position: absolute;
+          top: -120px;
+          right: -120px;
+          width: 280px;
+          height: 280px;
+          border-radius: 999px;
+          background: rgba(86, 224, 131, 0.15);
+          filter: blur(48px);
+        }
+
+        .landing-left-content {
+          max-width: 560px;
+          margin: 0 auto;
+          padding: 96px 64px;
+          position: relative;
+        }
+
+        .landing-left-content h1 {
+          margin: 0 0 24px;
+          font-size: 48px;
+          line-height: 56px;
+          letter-spacing: -0.02em;
+        }
+
+        .landing-left-content > p {
+          margin: 0 0 48px;
+          font-size: 20px;
+          line-height: 30px;
+          color: rgba(19, 19, 19, 0.7);
+        }
+
+        .feature-list {
+          display: grid;
+          gap: 20px;
+        }
+
+        .feature-row {
+          display: flex;
+          align-items: flex-start;
+          gap: 12px;
+        }
+
+        .feature-icon {
+          width: 28px;
+          height: 28px;
+          border-radius: 8px;
+          background: #ffffff;
+          color: var(--green-strong);
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 14px;
+        }
+
+        .feature-row h3 {
+          margin: 0 0 4px;
+          font-size: 16px;
+          font-weight: 700;
+        }
+
+        .feature-row p {
+          margin: 0;
+          font-size: 13px;
+          color: rgba(19, 19, 19, 0.6);
+        }
+
+        .landing-right {
+          width: 100%;
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 24px;
+          padding: 24px 16px;
         }
-        .screen-full {
-          min-height: 100vh;
-          padding-top: 78px;
-        }
-        .card {
+
+        .form-card {
           width: 100%;
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          border-radius: 8px;
-          padding: 24px;
+          max-width: 520px;
+          background: rgba(255, 255, 255, 0.8);
+          border: 1px solid rgba(255, 255, 255, 0.6);
+          border-radius: 12px;
+          padding: 32px;
+          backdrop-filter: blur(12px);
         }
-        .logo {
-          margin: 0;
+
+        .form-heading {
+          margin-bottom: 28px;
+        }
+
+        .form-heading h2 {
+          margin: 0 0 8px;
           font-size: 32px;
-          letter-spacing: 0.3em;
-          color: #ffffff;
-          text-align: center;
+          line-height: 40px;
+          letter-spacing: -0.01em;
         }
-        .logo.left {
-          text-align: left;
-          font-size: 24px;
+
+        .form-heading p {
+          margin: 0;
+          color: rgba(19, 19, 19, 0.6);
+          font-size: 15px;
         }
-        .tagline {
-          margin: 12px 0 22px;
-          color: rgba(255, 255, 255, 0.45);
-          font-size: 12px;
-          text-align: center;
+
+        .stack-lg {
+          display: grid;
+          gap: 16px;
         }
-        .title {
-          margin: 0 0 10px;
-          font-size: 26px;
+
+        .stack-sm {
+          display: grid;
+          gap: 6px;
         }
-        .muted {
-          margin: 0 0 18px;
-          color: rgba(255, 255, 255, 0.45);
-        }
-        .stack {
-          display: flex;
-          flex-direction: column;
+
+        .grid-two {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 12px;
         }
-        .label {
-          color: #ffffff;
-          font-size: 13px;
+
+        .stack-sm label,
+        .radio-group-dark legend {
+          font-size: 11px;
+          letter-spacing: 0.08em;
+          font-weight: 700;
+          color: rgba(19, 19, 19, 0.58);
+          text-transform: uppercase;
         }
-        .field {
+
+        .input-light {
           width: 100%;
-          background: transparent;
-          color: #ffffff;
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          border-radius: 4px;
-          padding: 10px 12px;
-          font-family: 'Courier New', Courier, monospace;
+          border: 1px solid transparent;
+          border-radius: 8px;
+          background: var(--surface-variant);
+          color: var(--text-charcoal);
+          padding: 12px 14px;
+          font-size: 14px;
+          font-family: 'Inter', sans-serif;
           outline: none;
+          transition: border-color 200ms ease, background-color 200ms ease;
         }
-        .field:focus {
-          border-color: rgba(255, 255, 255, 0.6);
+
+        .input-light:focus {
+          border-color: var(--green-main);
+          background: #ffffff;
         }
-        .field:disabled {
-          opacity: 0.55;
-          cursor: not-allowed;
+
+        .terms-row {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 13px;
+          color: rgba(19, 19, 19, 0.6);
         }
-        .btn {
-          background: transparent;
-          color: #ffffff;
-          border: 1px solid rgba(255, 255, 255, 0.5);
-          border-radius: 4px;
-          padding: 10px 12px;
-          font-family: 'Courier New', Courier, monospace;
+
+        .terms-row a {
+          color: var(--green-strong);
+        }
+
+        .btn-primary {
+          width: 100%;
+          border: 0;
+          border-radius: 8px;
+          padding: 14px;
+          background: var(--green-main);
+          color: #003918;
+          font-size: 16px;
+          font-weight: 700;
           cursor: pointer;
         }
-        .btn:hover:not(:disabled) {
-          background: rgba(255, 255, 255, 0.08);
-        }
-        .btn:disabled {
-          opacity: 0.55;
+
+        .btn-primary:disabled {
+          opacity: 0.7;
           cursor: not-allowed;
         }
-        .error-text {
-          margin: 0;
-          color: #ffffff;
-          font-size: 12px;
+
+        .or-divider {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          position: relative;
+          margin: 4px 0;
         }
+
+        .or-divider::before {
+          content: '';
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 50%;
+          border-top: 1px solid var(--border-soft);
+        }
+
+        .or-divider span {
+          position: relative;
+          z-index: 1;
+          padding: 0 10px;
+          background: rgba(255, 255, 255, 0.95);
+          text-transform: uppercase;
+          font-size: 11px;
+          letter-spacing: 0.08em;
+          color: rgba(19, 19, 19, 0.45);
+        }
+
+        .btn-google {
+          width: 100%;
+          border: 1px solid var(--border-soft);
+          border-radius: 8px;
+          background: #ffffff;
+          color: var(--text-charcoal);
+          padding: 14px;
+          font-size: 14px;
+          font-weight: 700;
+          cursor: pointer;
+        }
+
+        .footer-shell {
+          width: 100%;
+          border-top: 1px solid var(--border-soft);
+          background: #ffffff;
+          color: rgba(19, 19, 19, 0.45);
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 16px;
+          padding: 24px 64px;
+          font-size: 12px;
+          position: relative;
+          z-index: 10;
+        }
+
+        .footer-links {
+          display: flex;
+          gap: 24px;
+          flex-wrap: wrap;
+        }
+
+        .flow-page {
+          min-height: 100vh;
+          background: var(--dark-bg);
+          color: var(--dark-text);
+          display: grid;
+          place-items: center;
+          padding: 24px 16px;
+        }
+
+        .flow-card {
+          width: 100%;
+          max-width: 560px;
+          border: 1px solid var(--dark-border);
+          border-radius: 16px;
+          background: var(--dark-surface);
+          padding: 28px;
+        }
+
+        .flow-title {
+          margin: 0 0 10px;
+          font-family: 'Space Grotesk', sans-serif;
+          font-size: 28px;
+          line-height: 36px;
+        }
+
+        .flow-subtitle {
+          margin: 0 0 18px;
+          color: var(--dark-muted);
+        }
+
         .step-row {
           display: flex;
           justify-content: center;
           gap: 8px;
-          margin-bottom: 20px;
+          margin-bottom: 18px;
         }
+
         .dot {
           width: 8px;
           height: 8px;
-          border-radius: 100px;
-          background: rgba(255, 255, 255, 0.25);
+          border-radius: 999px;
+          background: #3d4a3e;
         }
+
         .dot.active {
-          background: #ffffff;
+          background: var(--green-main);
         }
-        .radio-group {
-          border: 0;
-          padding: 0;
+
+        .input-dark {
+          width: 100%;
+          border: 1px solid #3d4a3e;
+          border-radius: 8px;
+          background: #131313;
+          color: var(--dark-text);
+          padding: 12px 14px;
+          font-family: 'Inter', sans-serif;
+          font-size: 14px;
+          outline: none;
+          transition: border-color 200ms ease;
+        }
+
+        .input-dark:focus {
+          border-color: var(--green-main);
+        }
+
+        .radio-group-dark {
           margin: 0;
-          display: flex;
-          flex-direction: column;
+          border: 1px solid #2a2a2a;
+          border-radius: 8px;
+          padding: 12px;
+          display: grid;
           gap: 8px;
         }
-        .radio-item {
+
+        .radio-group-dark label {
           display: flex;
           align-items: center;
           gap: 8px;
-          color: #ffffff;
           font-size: 14px;
+          color: var(--dark-text);
         }
-        .top-bar {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
+
+        .btn-dark {
+          border: 1px solid var(--green-strong);
+          background: var(--green-strong);
+          color: #00210b;
+          border-radius: 8px;
+          padding: 12px 14px;
+          font-size: 14px;
+          font-weight: 700;
+          cursor: pointer;
+          width: 100%;
+        }
+
+        .btn-dark:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
+        }
+
+        .demo-root {
+          min-height: 100vh;
+          background: var(--dark-bg);
+          color: var(--dark-text);
+          position: relative;
+        }
+
+        .demo-topbar {
           height: 78px;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-          background: #000000;
-          padding: 0 18px;
+          border-bottom: 1px solid #2a2a2a;
           display: flex;
           align-items: center;
           justify-content: space-between;
-          z-index: 2;
+          padding: 0 20px;
+          position: sticky;
+          top: 0;
+          z-index: 8;
+          background: rgba(19, 19, 19, 0.85);
+          backdrop-filter: blur(10px);
         }
-        .timer {
-          margin: 0;
-          font-size: 20px;
-        }
-        .demo-shell {
+
+        .demo-main {
           max-width: 900px;
           margin: 0 auto;
-          padding: 20px;
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-          align-items: center;
+          padding: 22px 16px 30px;
+          display: grid;
+          gap: 14px;
         }
-        .demo-shell.frozen {
+
+        .demo-main.frozen {
           pointer-events: none;
           opacity: 0.45;
         }
+
+        .demo-timer {
+          margin: 0;
+          font-family: 'Space Grotesk', sans-serif;
+          font-size: 24px;
+          font-weight: 700;
+        }
+
         .face-placeholder {
           width: 100%;
           max-width: 640px;
+          justify-self: center;
           aspect-ratio: 16 / 9;
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          border-radius: 8px;
-          background: rgba(255, 255, 255, 0.08);
-          color: rgba(255, 255, 255, 0.45);
+          border: 1px solid #353535;
+          border-radius: 12px;
+          background: #1f1f1f;
+          color: #bccabb;
           display: grid;
           place-items: center;
           text-align: center;
-          padding: 16px;
+          padding: 12px;
+          font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
         }
+
         .input-row {
           width: 100%;
           max-width: 640px;
+          justify-self: center;
           display: grid;
           grid-template-columns: 1fr auto;
           gap: 8px;
         }
+
         .chip-row {
           width: 100%;
           max-width: 640px;
+          justify-self: center;
           display: flex;
-          flex-wrap: wrap;
           gap: 8px;
+          flex-wrap: wrap;
         }
-        .chip {
-          background: transparent;
-          border: 1px solid rgba(255, 255, 255, 0.5);
-          border-radius: 4px;
-          color: #ffffff;
-          padding: 8px 10px;
-          font-family: 'Courier New', Courier, monospace;
+
+        .chip-dark {
+          border: 1px solid #3d4a3e;
+          background: #1b1b1b;
+          color: #bccabb;
+          border-radius: 999px;
+          padding: 8px 12px;
+          font-size: 13px;
           cursor: pointer;
         }
-        .chip:hover:not(:disabled) {
-          background: rgba(255, 255, 255, 0.08);
-        }
-        .chip:disabled {
-          opacity: 0.55;
+
+        .chip-dark:disabled {
+          opacity: 0.6;
           cursor: not-allowed;
         }
+
         .overlay {
           position: fixed;
           inset: 0;
           display: flex;
           align-items: center;
           justify-content: center;
-          background: rgba(0, 0, 0, 0.84);
-          backdrop-filter: blur(4px);
+          background: rgba(0, 0, 0, 0.62);
+          backdrop-filter: blur(8px);
           opacity: 0;
           pointer-events: none;
           transition: opacity 200ms ease;
-          z-index: 4;
+          z-index: 30;
+          padding: 16px;
         }
+
         .overlay.show {
           opacity: 1;
           pointer-events: auto;
         }
-        .overlay-card {
-          width: calc(100% - 32px);
-          max-width: 520px;
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          border-radius: 8px;
-          background: #000000;
+
+        .overlay-card-dark {
+          width: 100%;
+          max-width: 560px;
+          border: 1px solid #3d4a3e;
+          border-radius: 12px;
+          background: #131313;
+          color: var(--dark-text);
           padding: 24px;
         }
-        .overlay-card h2 {
+
+        .overlay-card-dark h2 {
           margin: 0 0 10px;
-          font-size: 28px;
+          font-family: 'Space Grotesk', sans-serif;
+          font-size: 30px;
+          line-height: 38px;
         }
-        .overlay-card p {
+
+        .overlay-card-dark p {
           margin: 0 0 16px;
-          color: rgba(255, 255, 255, 0.45);
+          color: #bccabb;
           line-height: 1.5;
         }
-        .joined-state {
+
+        .joined-state-dark {
           text-align: center;
-          padding: 12px 4px;
         }
+
         .checkmark {
-          font-size: 52px;
+          font-size: 54px;
           margin-bottom: 10px;
+          color: var(--green-main);
         }
-        @media (max-width: 700px) {
-          .top-bar {
-            height: 70px;
+
+        .error-text {
+          margin: 0;
+          color: #ffb4ab;
+          font-size: 13px;
+        }
+
+        .error-text.dark {
+          color: #93000a;
+          background: #ffdad6;
+          border: 1px solid #ffb4ab;
+          border-radius: 8px;
+          padding: 10px;
+        }
+
+        @media (min-width: 1024px) {
+          .landing-left {
+            display: block;
           }
-          .screen-full {
-            padding-top: 70px;
+
+          .landing-right {
+            width: 50%;
+            padding: 64px;
           }
-          .logo.left {
-            font-size: 20px;
+        }
+
+        @media (max-width: 900px) {
+          .header-shell,
+          .footer-shell {
+            padding-left: 16px;
+            padding-right: 16px;
           }
-          .timer {
-            font-size: 18px;
+
+          .footer-shell {
+            flex-direction: column;
+            align-items: flex-start;
           }
-          .input-row {
+        }
+
+        @media (max-width: 640px) {
+          .grid-two {
             grid-template-columns: 1fr;
           }
-          .btn {
-            width: 100%;
+
+          .form-card {
+            padding: 20px;
+          }
+
+          .form-heading h2 {
+            font-size: 28px;
+            line-height: 34px;
+          }
+
+          .input-row {
+            grid-template-columns: 1fr;
           }
         }
       `}</style>
