@@ -885,7 +885,7 @@ function DemoPage({ push }) {
         </section>
 
         <aside className="demo-console-chat">
-          <section className="glass-panel console-chat-panel">
+          <section className="console-chat-premium">
             <div className="console-chat-head">
               <div className="header-brand chat-brand">
                 <span className="chat-icon material-symbols-outlined">chat_bubble</span>
@@ -2207,6 +2207,20 @@ export default function App() {
           display: flex;
           flex-direction: column;
           overflow: hidden;
+        }
+
+        .console-chat-premium {
+          height: 100%;
+          min-height: 0;
+          border-radius: 18px;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+          background: rgba(255, 255, 255, 0.35);
+          border: 1px solid rgba(18, 20, 16, 0.06);
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
         }
 
         .console-chat-head {
