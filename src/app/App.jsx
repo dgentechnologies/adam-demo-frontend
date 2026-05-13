@@ -828,7 +828,7 @@ function DemoPage({ push }) {
           <p>Your private 5-minute session is ready. ADAM is online and standing by for your first command.</p>
           <p className="demo-welcome-note">Priority early-access invitations are sent first to users who complete this guided preview.</p>
           <button className="demo-welcome-button" type="button" onClick={beginSession}>
-            Start Premium Live Session
+            Start Live Session
           </button>
         </div>
       </div>
