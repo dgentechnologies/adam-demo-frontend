@@ -784,74 +784,7 @@ function DemoPage({ push }) {
       </header>
 
       <main className={`demo-console-shell ${welcomeOpen ? 'blurred' : ''}`}>
-        <aside className="demo-console-sidebar">
-          <section className="console-card-premium">
-            <span className="console-eyebrow">AI Module Status</span>
-            <div className="console-card-head">
-              <h2>Core Intelligence</h2>
-              <span className="status-dot" />
-            </div>
-            <div className="console-metric">
-              <div className="console-metric-row">
-                <span>Neural Load</span>
-                <span>24%</span>
-              </div>
-              <div className="progress-track">
-                <div className="progress-fill" style={{ width: '24%' }} />
-              </div>
-            </div>
-            <div className="console-footnote">
-              <span className="material-symbols-outlined console-footnote-icon">memory</span>
-              <span>LMM-V4 Optimized Engine</span>
-            </div>
-          </section>
-
-          <section className="console-card-premium console-card-flex">
-            <span className="console-eyebrow">System Status</span>
-            <div className="console-status-list">
-              {telemetryItems.map((item) => (
-                <div key={item.label} className="console-status-row">
-                  <div className="console-status-icon">
-                    <span className="material-symbols-outlined">{item.icon}</span>
-                  </div>
-                  <div>
-                    <div className={`console-status-label ${item.muted ? 'muted' : ''}`}>{item.label}</div>
-                    <div className={`console-status-value ${item.muted ? 'muted' : ''}`}>{item.value}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="console-secure">
-              <div className="console-secure-head">
-                <span className="material-symbols-outlined console-footnote-icon">shield_with_heart</span>
-                <span>Secure Session</span>
-              </div>
-              <p>Transcription encrypted in real-time.</p>
-            </div>
-          </section>
-        </aside>
-
         <section className="demo-console-center">
-          <div className="demo-hero-panel">
-            <div className="demo-hero-image-wrap">
-              <img src="/images/bg.png" alt="ADAM live console visual" className="demo-hero-image" />
-            </div>
-            <div className="demo-hero-bottom-bar">
-              <div>
-                <div className="demo-hero-label">Session</div>
-                <div className="demo-hero-value">{onboardingData.name || 'Guest'} · {demoStarted ? 'Active' : 'Paused'}</div>
-              </div>
-              <div className="demo-hero-waveform" aria-hidden="true">
-                <span />
-                <span />
-                <span />
-                <span />
-                <span />
-                <span />
-              </div>
-            </div>
-          </div>
-
           <div className="demo-input-card">
             <input
               className="console-input"
