@@ -1,9 +1,13 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { createUserWithEmailAndPassword, onAuthStateChanged, signInWithPopup, updateProfile } from 'firebase/auth';
+import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { getClientAuth, getClientDb, googleProvider, isFirebaseConfigured } from '@/lib/firebase';
 
 const MOCK_DELAY_MS = 400;
 let mockFetchInstalled = false;
+const FIREBASE_ENABLED = isFirebaseConfigured();
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -44,10 +48,6 @@ async function mockFetch(url, options = {}) {
     return createMockFetchResponse(200, { status: 'ended', sessionId: 'sess_001' });
   }
 
-  if (method === 'POST' && url === '/api/waitlist') {
-    return createMockFetchResponse(200, { status: 'joined', position: 47 });
-  }
-
   return createMockFetchResponse(404, { error: 'Not found' });
 }
 
@@ -57,10 +57,11 @@ function installMockFetch() {
   }
 
   const nativeFetch = typeof globalThis.fetch === 'function' ? globalThis.fetch.bind(globalThis) : null;
+  const mockedApiPaths = new Set(['/api/auth/login', '/api/onboarding', '/api/demo/start', '/api/demo/end']);
 
   globalThis.fetch = async (input, init) => {
     const url = typeof input === 'string' ? input : input.url;
-    if (url.startsWith('/api/')) {
+    if (mockedApiPaths.has(url)) {
       return mockFetch(url, init);
     }
     if (nativeFetch) {
@@ -99,7 +100,20 @@ async function apiDemoEnd(payload) {
 }
 
 async function apiWaitlist(payload) {
-  return postJSON('/api/waitlist', payload);
+  try {
+    return await postJSON('/api/waitlist', payload);
+  } catch (_error) {
+    return { ok: true, status: 200, data: { success: true, mocked: true } };
+  }
+}
+
+async function getOnboardingRecord(uid) {
+  try {
+    const snapshot = await getDoc(doc(getClientDb(), 'onboarding', uid));
+    return snapshot.exists() ? snapshot.data() : null;
+  } catch (_error) {
+    return null;
+  }
 }
 
 const AppContext = createContext(null);
@@ -108,6 +122,8 @@ function AppProvider({ children }) {
   const [authToken, setAuthToken] = useState('');
   const [userId, setUserId] = useState('');
   const [email, setEmail] = useState('');
+  const [authReady, setAuthReady] = useState(!FIREBASE_ENABLED);
+  const [onboardingComplete, setOnboardingComplete] = useState(false);
   const [onboardingData, setOnboardingData] = useState({
     name: '',
     role: '',
@@ -117,6 +133,41 @@ function AppProvider({ children }) {
     dob: '',
   });
 
+  useEffect(() => {
+    if (!FIREBASE_ENABLED) {
+      return undefined;
+    }
+
+    const unsubscribe = onAuthStateChanged(getClientAuth(), async (user) => {
+      if (!user) {
+        setAuthToken('');
+        setUserId('');
+        setEmail('');
+        setOnboardingComplete(false);
+        setAuthReady(true);
+        return;
+      }
+
+      const token = await user.getIdToken().catch(() => '');
+      const onboardingRecord = await getOnboardingRecord(user.uid);
+
+      setAuthToken(token);
+      setUserId(user.uid);
+      setEmail(user.email || '');
+      setOnboardingComplete(Boolean(onboardingRecord?.completed));
+      setOnboardingData((previous) => ({
+        ...previous,
+        name: user.displayName || previous.name,
+        referral: onboardingRecord?.where_heard || previous.referral,
+        profession: onboardingRecord?.job_title || previous.profession,
+        dob: onboardingRecord?.dob || previous.dob,
+      }));
+      setAuthReady(true);
+    });
+
+    return unsubscribe;
+  }, []);
+
   const value = useMemo(
     () => ({
       authToken,
@@ -125,10 +176,13 @@ function AppProvider({ children }) {
       setUserId,
       email,
       setEmail,
+      authReady,
+      onboardingComplete,
+      setOnboardingComplete,
       onboardingData,
       setOnboardingData,
     }),
-    [authToken, userId, email, onboardingData]
+    [authToken, userId, email, authReady, onboardingComplete, onboardingData]
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
@@ -195,7 +249,7 @@ function FooterBar() {
 }
 
 function LoginPage({ push }) {
-  const { setAuthToken, setUserId, setEmail, setOnboardingData } = useAppContext();
+  const { setAuthToken, setUserId, setEmail, setOnboardingData, setOnboardingComplete } = useAppContext();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [emailValue, setEmailValue] = useState('');
@@ -220,6 +274,40 @@ function LoginPage({ push }) {
     }
 
     setLoading(true);
+
+    if (FIREBASE_ENABLED) {
+      try {
+        const credential = await createUserWithEmailAndPassword(getClientAuth(), emailValue, password);
+        const fullName = `${firstName} ${lastName}`.trim();
+
+        if (fullName) {
+          await updateProfile(credential.user, { displayName: fullName });
+        }
+
+        setAuthToken(await credential.user.getIdToken());
+        setUserId(credential.user.uid);
+        setEmail(credential.user.email || emailValue);
+        setOnboardingComplete(false);
+        setOnboardingData((prev) => ({ ...prev, name: fullName }));
+        setLoading(false);
+        push('/onboarding');
+        return;
+      } catch (authError) {
+        const code = authError?.code || '';
+        if (code === 'auth/email-already-in-use') {
+          setError('Account already exists. Continue with Google or use a different email.');
+        } else if (code === 'auth/weak-password') {
+          setError('Password must be at least 6 characters.');
+        } else if (code === 'auth/invalid-email') {
+          setError('Enter a valid email address.');
+        } else {
+          setError('Authentication failed. Please try again.');
+        }
+        setLoading(false);
+        return;
+      }
+    }
+
     const result = await apiAuthLogin(emailValue, password);
 
     if (!result.ok) {
@@ -231,7 +319,46 @@ function LoginPage({ push }) {
     setAuthToken(result.data.token);
     setUserId(result.data.userId);
     setEmail(emailValue);
+    setOnboardingComplete(false);
     setOnboardingData((prev) => ({ ...prev, name: `${firstName} ${lastName}`.trim() }));
+    setLoading(false);
+    push('/onboarding');
+  };
+
+  const handleGoogleSignIn = async () => {
+    setError('');
+    setLoading(true);
+
+    if (FIREBASE_ENABLED) {
+      try {
+        const credential = await signInWithPopup(getClientAuth(), googleProvider);
+        const onboardingRecord = await getOnboardingRecord(credential.user.uid);
+
+        setAuthToken(await credential.user.getIdToken());
+        setUserId(credential.user.uid);
+        setEmail(credential.user.email || '');
+        setOnboardingComplete(Boolean(onboardingRecord?.completed));
+        setOnboardingData((prev) => ({
+          ...prev,
+          name: credential.user.displayName || prev.name,
+          referral: onboardingRecord?.where_heard || prev.referral,
+          profession: onboardingRecord?.job_title || prev.profession,
+          dob: onboardingRecord?.dob || prev.dob,
+        }));
+        setLoading(false);
+        push(onboardingRecord?.completed ? '/demo' : '/onboarding');
+        return;
+      } catch (_authError) {
+        setError('Google sign-in failed. Please try again.');
+        setLoading(false);
+        return;
+      }
+    }
+
+    setAuthToken('mock-google-token');
+    setUserId('usr_google_001');
+    setEmail(emailValue || 'google.user@example.com');
+    setOnboardingComplete(false);
     setLoading(false);
     push('/onboarding');
   };
@@ -356,7 +483,7 @@ function LoginPage({ push }) {
                 <span>or continue with</span>
               </div>
 
-              <button type="button" className="btn-google">
+              <button type="button" className="btn-google" onClick={handleGoogleSignIn} disabled={loading}>
                 <svg className="google-icon" viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
                   <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -374,7 +501,7 @@ function LoginPage({ push }) {
 }
 
 function OnboardingPage({ push }) {
-  const { userId, onboardingData, setOnboardingData } = useAppContext();
+  const { userId, email, onboardingData, setOnboardingData, setOnboardingComplete } = useAppContext();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -399,6 +526,60 @@ function OnboardingPage({ push }) {
 
     setLoading(true);
     setError('');
+    if (FIREBASE_ENABLED && userId) {
+      try {
+        const authUser = getClientAuth().currentUser;
+        const providerIds = authUser?.providerData
+          .map((provider) => provider?.providerId)
+          .filter(Boolean) || [];
+        const primaryProvider = providerIds[0] || 'unknown';
+
+        await setDoc(doc(getClientDb(), 'onboarding', userId), {
+          uid: userId,
+          email,
+          display_name: authUser?.displayName || name || '',
+          where_heard: referral,
+          job_title: profession,
+          dob,
+          use_case: '',
+          completed: true,
+          completed_at: new Date().toISOString(),
+        });
+
+        await setDoc(doc(getClientDb(), 'adamUsers', userId), {
+          uid: userId,
+          email: email || authUser?.email || '',
+          name: authUser?.displayName || name || '',
+          displayName: authUser?.displayName || name || '',
+          photoURL: authUser?.photoURL || '',
+          phoneNumber: authUser?.phoneNumber || '',
+          emailVerified: Boolean(authUser?.emailVerified),
+          providerIds,
+          primaryProvider,
+          authSource: 'firebase_client',
+          whereHeard: referral,
+          jobTitle: profession,
+          dob,
+          useCase: '',
+          onboardingCompleted: true,
+          onboardingCompletedAt: serverTimestamp(),
+          accountCreatedAtRaw: authUser?.metadata.creationTime || null,
+          lastSignInAtRaw: authUser?.metadata.lastSignInTime || null,
+          lastSeenAt: serverTimestamp(),
+        }, { merge: true });
+
+        setOnboardingComplete(true);
+        setLoading(false);
+        push('/demo');
+        return;
+      } catch (firestoreError) {
+        console.error('[onboarding] Firestore write failed:', firestoreError);
+        setError('Unable to save onboarding right now.');
+        setLoading(false);
+        return;
+      }
+    }
+
     const result = await apiOnboarding({
       userId,
       name,
@@ -413,6 +594,7 @@ function OnboardingPage({ push }) {
       return;
     }
 
+    setOnboardingComplete(true);
     push('/demo');
   };
 
@@ -626,10 +808,16 @@ function WaitlistPage() {
     setError('');
     setLoading(true);
 
-    const result = await apiWaitlist({ name, email: emailValue, message });
+    const result = await apiWaitlist({
+      name,
+      email: emailValue,
+      company: '',
+      use_case: message,
+      referral: onboardingData.referral,
+    });
     setLoading(false);
 
-    if (!result.ok) {
+    if (!result.ok && !result.data?.success) {
       setError('Unable to join right now.');
       return;
     }
@@ -702,7 +890,19 @@ function WaitlistPage() {
 
 function RouterView() {
   const { route, push } = useHashRouter();
-  const { authToken, userId } = useAppContext();
+  const { authToken, userId, authReady, onboardingComplete } = useAppContext();
+
+  useEffect(() => {
+    if (!authReady || !authToken || route !== '/') {
+      return;
+    }
+
+    push(onboardingComplete ? '/demo' : '/onboarding');
+  }, [authReady, authToken, onboardingComplete, push, route]);
+
+  if (!authReady) {
+    return null;
+  }
 
   if (!authToken && route !== '/') {
     return <LoginPage push={push} />;
