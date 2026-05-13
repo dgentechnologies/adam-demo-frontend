@@ -784,39 +784,6 @@ function DemoPage({ push }) {
       </header>
 
       <main className={`demo-console-shell ${welcomeOpen ? 'blurred' : ''}`}>
-        <section className="demo-console-center">
-          <div className="demo-input-card">
-            <input
-              className="console-input"
-              type="text"
-              placeholder="Type your query for ADAM"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              disabled={endOpen || !demoStarted}
-            />
-            <button className="console-send-btn" type="button" disabled={endOpen || !demoStarted}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="22" y1="2" x2="11" y2="13"/>
-                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
-              </svg>
-            </button>
-          </div>
-
-          <div className="console-chip-row">
-            {['What can you do?', 'Tell me a joke', 'Control my lights'].map((chip) => (
-              <button
-                key={chip}
-                className="console-chip"
-                type="button"
-                disabled={endOpen || !demoStarted}
-                onClick={() => setQuery(chip)}
-              >
-                {chip}
-              </button>
-            ))}
-          </div>
-        </section>
-
         <aside className="demo-console-chat">
           <section className="console-chat-premium">
             <div className="console-chat-head">
