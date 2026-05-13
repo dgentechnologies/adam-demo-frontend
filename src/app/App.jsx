@@ -370,29 +370,11 @@ function LoginPage({ push }) {
 
       <section className="landing-main">
         <aside className="landing-left">
-          <div className="landing-left-glow" aria-hidden="true" />
-          <div className="landing-left-content">
-            <h1>Build the future of desktop intelligence.</h1>
-            <p>
-              Join the next generation of autonomous agents. Experience ADAM&apos;s precision in your daily workflow.
-            </p>
-            <div className="feature-list">
-              <article className="feature-row">
-                <span className="feature-icon" aria-hidden="true">⚡</span>
-                <div>
-                  <h3>Lightning Fast Execution</h3>
-                  <p>Sub-second response times for complex task automation.</p>
-                </div>
-              </article>
-              <article className="feature-row">
-                <span className="feature-icon" aria-hidden="true">🛡</span>
-                <div>
-                  <h3>Enterprise-Grade Privacy</h3>
-                  <p>Your data stays yours with local-first processing options.</p>
-                </div>
-              </article>
-            </div>
-          </div>
+          <img
+            src="/images/login-image.png"
+            alt="ADAM robot"
+            className="landing-left-image"
+          />
         </aside>
 
         <section className="landing-right">
@@ -1074,71 +1056,12 @@ export default function App() {
           display: none;
         }
 
-        .landing-left-glow {
-          position: absolute;
-          top: -120px;
-          right: -120px;
-          width: 280px;
-          height: 280px;
-          border-radius: 999px;
-          background: rgba(86, 224, 131, 0.15);
-          filter: blur(48px);
-        }
-
-        .landing-left-content {
-          max-width: 560px;
-          margin: 0 auto;
-          padding: 48px 48px;
-          position: relative;
-        }
-
-        .landing-left-content h1 {
-          margin: 0 0 16px;
-          font-size: 38px;
-          line-height: 46px;
-          letter-spacing: -0.02em;
-        }
-
-        .landing-left-content > p {
-          margin: 0 0 28px;
-          font-size: 16px;
-          line-height: 24px;
-          color: rgba(19, 19, 19, 0.7);
-        }
-
-        .feature-list {
-          display: grid;
-          gap: 20px;
-        }
-
-        .feature-row {
-          display: flex;
-          align-items: flex-start;
-          gap: 12px;
-        }
-
-        .feature-icon {
-          width: 28px;
-          height: 28px;
-          border-radius: 8px;
-          background: #ffffff;
-          color: var(--green-strong);
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 14px;
-        }
-
-        .feature-row h3 {
-          margin: 0 0 4px;
-          font-size: 16px;
-          font-weight: 700;
-        }
-
-        .feature-row p {
-          margin: 0;
-          font-size: 13px;
-          color: rgba(19, 19, 19, 0.6);
+        .landing-left-image {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          object-position: center;
+          display: block;
         }
 
         .landing-right {
