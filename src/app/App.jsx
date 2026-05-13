@@ -91,10 +91,6 @@ async function apiOnboarding(payload) {
   return postJSON('/api/onboarding', payload);
 }
 
-async function apiDemoStart(payload) {
-  return postJSON('/api/demo/start', payload);
-}
-
 async function apiDemoEnd(payload) {
   return postJSON('/api/demo/end', payload);
 }
@@ -702,74 +698,210 @@ function DemoPage({ push }) {
     apiDemoEnd({ userId, endTime: Date.now() });
   }, [timeLeft, userId]);
 
-  const startDemo = async () => {
+  const beginSession = async () => {
     setWelcomeOpen(false);
     setDemoStarted(true);
     await apiDemoStart({ userId, startTime: Date.now() });
   };
 
   const timerColor = timeLeft <= 30 ? '#dc2626' : timeLeft <= 60 ? '#d97706' : '#56e083';
+  const telemetryItems = [
+    { label: 'Microphone', value: 'Active', icon: 'mic' },
+    { label: 'Low-Latency Link', value: '12ms', icon: 'wifi' },
+    { label: 'Vision Feed', value: 'Standby', icon: 'videocam', muted: true },
+  ];
+  const transcript = [
+    {
+      speaker: 'ADAM',
+      time: '14:02',
+      text: 'Hello! I\'ve completed the analysis of the quarterly data. Would you like me to walk you through the key performance indicators first, or should we jump straight to the forecasting models?',
+      tone: 'adam',
+    },
+    {
+      speaker: 'YOU',
+      time: '14:03',
+      text: 'Let\'s start with the KPIs. Focus specifically on the retention rates in the enterprise sector.',
+      tone: 'user',
+    },
+    {
+      speaker: 'ADAM',
+      time: '14:03',
+      text: 'Understood. Fetching the retention metrics for Enterprise accounts...',
+      tone: 'adam-active',
+    },
+  ];
 
   return (
-    <main className="demo-root">
-      <div className="premium-gradient-bg" aria-hidden="true" />
+    <main className="demo-console-page">
+      <div className="demo-console-bg" aria-hidden="true" />
+      <div className="demo-console-overlay" aria-hidden="true" />
 
-      <header className="demo-topbar">
+      <header className="demo-console-topbar">
         <div className="header-brand">
           <span className="brand-mark" aria-hidden="true">
             <span className="brand-mark-cut" />
           </span>
-          <span className="brand-text">ADAM demo</span>
+          <span className="brand-text">ADAM | Live Dashboard</span>
         </div>
-        <p className="demo-timer" style={{ color: timerColor }}>{formatRemaining(timeLeft)}</p>
+        <p className="demo-timer mono-timer" style={{ color: timerColor }}>{formatRemaining(timeLeft)}</p>
       </header>
 
-      <section className={`demo-main ${endOpen ? 'frozen' : ''}`}>
-        <div className="face-placeholder">[ ADAM face output ]</div>
+      <main className={`demo-console-shell ${welcomeOpen ? 'blurred' : ''}`}>
+        <aside className="demo-console-sidebar">
+          <section className="glass-panel console-card console-card-tight">
+            <span className="console-eyebrow">AI Module Status</span>
+            <div className="console-card-head">
+              <h2>Core Intelligence</h2>
+              <span className="status-dot" />
+            </div>
+            <div className="console-metric">
+              <div className="console-metric-row">
+                <span>Neural Load</span>
+                <span>24%</span>
+              </div>
+              <div className="progress-track">
+                <div className="progress-fill" style={{ width: '24%' }} />
+              </div>
+            </div>
+            <div className="console-footnote">
+              <span className="material-symbols-outlined console-footnote-icon">memory</span>
+              <span>LMM-V4 Optimized Engine</span>
+            </div>
+          </section>
 
-        <div className="input-row">
-          <input
-            className="input-dark"
-            type="text"
-            placeholder="Type your query for ADAM"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            disabled={endOpen || !demoStarted}
-          />
-          <button className="btn-dark" type="button" disabled={endOpen || !demoStarted}>Send</button>
-        </div>
+          <section className="glass-panel console-card console-card-tight console-card-flex">
+            <span className="console-eyebrow">System Status</span>
+            <div className="console-status-list">
+              {telemetryItems.map((item) => (
+                <div key={item.label} className="console-status-row">
+                  <div className="console-status-icon">
+                    <span className="material-symbols-outlined">{item.icon}</span>
+                  </div>
+                  <div>
+                    <div className={`console-status-label ${item.muted ? 'muted' : ''}`}>{item.label}</div>
+                    <div className={`console-status-value ${item.muted ? 'muted' : ''}`}>{item.value}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="console-secure">
+              <div className="console-secure-head">
+                <span className="material-symbols-outlined console-footnote-icon">shield_with_heart</span>
+                <span>Secure Session</span>
+              </div>
+              <p>Transcription encrypted in real-time.</p>
+            </div>
+          </section>
+        </aside>
 
-        <div className="chip-row">
-          {['What can you do?', 'Tell me a joke', 'Control my lights'].map((chip) => (
-            <button
-              key={chip}
-              className="chip-dark"
-              type="button"
+        <section className="demo-console-center">
+          <div className="demo-hero-panel glass-panel">
+            <div className="demo-hero-image-wrap">
+              <img src="/images/bg.png" alt="ADAM live console visual" className="demo-hero-image" />
+            </div>
+            <div className="demo-hero-bottom-bar">
+              <div>
+                <div className="demo-hero-label">Session</div>
+                <div className="demo-hero-value">{onboardingData.name || 'Guest'} · {demoStarted ? 'Active' : 'Paused'}</div>
+              </div>
+              <div className="demo-hero-waveform" aria-hidden="true">
+                <span />
+                <span />
+                <span />
+                <span />
+                <span />
+                <span />
+              </div>
+            </div>
+          </div>
+
+          <div className="demo-input-card glass-panel">
+            <input
+              className="console-input"
+              type="text"
+              placeholder="Type your query for ADAM"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
               disabled={endOpen || !demoStarted}
-              onClick={() => setQuery(chip)}
-            >
-              {chip}
+            />
+            <button className="console-send-btn" type="button" disabled={endOpen || !demoStarted}>
+              Send
             </button>
-          ))}
-        </div>
-      </section>
+          </div>
 
-      <div className={`overlay ${welcomeOpen ? 'show' : ''}`} aria-hidden={!welcomeOpen}>
-        <div className="overlay-card-dark">
-          <h2>Welcome, {onboardingData.name || 'there'}</h2>
-          <p>
-            You have 5 minutes with ADAM. Ask anything, explore freely. Your session begins when you click Start.
-          </p>
-          <button className="btn-dark" type="button" onClick={startDemo}>Start demo</button>
+          <div className="console-chip-row">
+            {['What can you do?', 'Tell me a joke', 'Control my lights'].map((chip) => (
+              <button
+                key={chip}
+                className="console-chip"
+                type="button"
+                disabled={endOpen || !demoStarted}
+                onClick={() => setQuery(chip)}
+              >
+                {chip}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <aside className="demo-console-chat">
+          <section className="glass-panel console-chat-panel">
+            <div className="console-chat-head">
+              <div className="header-brand chat-brand">
+                <span className="chat-icon material-symbols-outlined">chat_bubble</span>
+                <div>
+                  <h3>Live Conversation</h3>
+                  <p>Real-time transcript</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="console-chat-stream scroll-hide">
+              {transcript.map((message) => (
+                <div
+                  key={`${message.speaker}-${message.time}-${message.text.slice(0, 12)}`}
+                  className={`console-message ${message.tone}`}
+                >
+                  <div className="console-message-meta">
+                    <span className={`console-message-speaker ${message.tone}`}>{message.speaker}</span>
+                    <span>{message.time}</span>
+                  </div>
+                  <div className={`console-message-bubble ${message.tone}`}>
+                    {message.text}
+                    {message.tone === 'adam-active' ? (
+                      <div className="console-thinking-dots" aria-hidden="true">
+                        <span />
+                        <span />
+                        <span />
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        </aside>
+      </main>
+
+      <div className={`demo-welcome-overlay ${welcomeOpen ? 'show' : ''}`} aria-hidden={!welcomeOpen}>
+        <div className="glass-panel demo-welcome-card">
+          <h1>Welcome to the ADAM Experience</h1>
+          <p>Your session is ready. ADAM is online and awaiting your first command.</p>
+          <button className="demo-welcome-button" type="button" onClick={beginSession}>
+            Begin Session
+          </button>
         </div>
       </div>
 
-      <div className={`overlay ${endOpen ? 'show' : ''}`} aria-hidden={!endOpen}>
-        <div className="overlay-card-dark">
-          <h2>Your demo session has ended.</h2>
+      {endOpen ? (
+        <div className="demo-end-banner" role="status" aria-live="polite">
+          <div>
+            <h2>Your demo session has ended.</h2>
+            <p>Join the waitlist to get early access.</p>
+          </div>
           <button className="btn-dark" type="button" onClick={() => push('/waitlist')}>Join the waitlist -&gt;</button>
         </div>
-      </div>
+      ) : null}
     </main>
   );
 }
@@ -1491,6 +1623,657 @@ export default function App() {
           position: relative;
         }
 
+        .demo-console-page {
+          min-height: 100vh;
+          position: relative;
+          overflow: hidden;
+          color: #181c1e;
+          background: #d7dadd;
+          background-image: url('/images/bg.png');
+          background-size: cover;
+          background-position: center center;
+          background-attachment: fixed;
+        }
+
+        .demo-console-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(215, 218, 221, 0.36);
+          backdrop-filter: blur(1px);
+          pointer-events: none;
+          z-index: 0;
+        }
+
+        .demo-console-bg {
+          position: fixed;
+          inset: 0;
+          background: linear-gradient(180deg, rgba(215, 218, 221, 0.18), rgba(215, 218, 221, 0.45));
+          pointer-events: none;
+          z-index: 0;
+        }
+
+        .glass-panel {
+          background: rgba(255, 255, 255, 0.7);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          border: 1px solid rgba(18, 20, 16, 0.08);
+          box-shadow: 0 10px 32px rgba(0, 0, 0, 0.16);
+        }
+
+        .scroll-hide::-webkit-scrollbar { display: none; }
+        .scroll-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+        .mono-timer {
+          font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        }
+
+        .demo-console-topbar {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          z-index: 20;
+          height: 64px;
+          border-bottom: 1px solid rgba(124, 130, 96, 0.18);
+          background: rgba(255, 255, 255, 0.42);
+          backdrop-filter: blur(12px);
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0 32px;
+        }
+
+        .demo-console-shell {
+          position: relative;
+          z-index: 1;
+          height: 100vh;
+          padding: 80px 24px 24px;
+          display: grid;
+          grid-template-columns: 256px minmax(0, 1fr) 400px;
+          gap: 24px;
+          overflow: hidden;
+        }
+
+        .demo-console-shell.blurred {
+          filter: blur(14px);
+          transform: scale(1.01);
+        }
+
+        .demo-console-sidebar,
+        .demo-console-chat {
+          display: flex;
+          flex-direction: column;
+          gap: 24px;
+          min-height: 0;
+        }
+
+        .console-card {
+          border-radius: 18px;
+          padding: 16px;
+        }
+
+        .console-card-tight {
+          min-height: 220px;
+        }
+
+        .console-card-flex {
+          flex: 1;
+          justify-content: space-between;
+        }
+
+        .console-eyebrow {
+          display: block;
+          font-size: 10px;
+          font-weight: 800;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          color: rgba(24, 28, 30, 0.56);
+          margin-bottom: 8px;
+        }
+
+        .console-card-head {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 12px;
+          margin-bottom: 14px;
+        }
+
+        .console-card-head h2 {
+          margin: 0;
+          font-size: 18px;
+          font-weight: 800;
+          letter-spacing: -0.02em;
+        }
+
+        .status-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 999px;
+          background: var(--primary);
+          box-shadow: 0 0 8px rgba(25, 179, 92, 0.6);
+          margin-top: 6px;
+          flex-shrink: 0;
+        }
+
+        .console-metric-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          font-size: 11px;
+          font-weight: 800;
+          color: rgba(24, 28, 30, 0.48);
+        }
+
+        .progress-track {
+          width: 100%;
+          height: 6px;
+          border-radius: 999px;
+          background: rgba(235, 238, 241, 1);
+          overflow: hidden;
+          margin-top: 8px;
+        }
+
+        .progress-fill {
+          height: 100%;
+          border-radius: inherit;
+          background: var(--primary);
+        }
+
+        .console-footnote {
+          margin-top: 16px;
+          padding-top: 14px;
+          border-top: 1px solid rgba(116, 122, 96, 0.12);
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 11px;
+          color: rgba(24, 28, 30, 0.62);
+          font-weight: 600;
+        }
+
+        .console-footnote-icon {
+          font-size: 18px;
+          color: var(--primary);
+        }
+
+        .console-status-list {
+          display: grid;
+          gap: 16px;
+        }
+
+        .console-status-row {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .console-status-icon {
+          width: 40px;
+          height: 40px;
+          border-radius: 12px;
+          background: rgba(241, 244, 247, 0.92);
+          display: grid;
+          place-items: center;
+          color: var(--primary);
+          flex-shrink: 0;
+        }
+
+        .console-status-icon .material-symbols-outlined {
+          font-size: 20px;
+        }
+
+        .console-status-label {
+          font-size: 14px;
+          font-weight: 800;
+          color: #181c1e;
+        }
+
+        .console-status-value {
+          font-size: 11px;
+          font-weight: 800;
+          color: var(--primary);
+        }
+
+        .console-status-label.muted,
+        .console-status-value.muted {
+          color: rgba(68, 73, 51, 0.6);
+        }
+
+        .console-secure {
+          margin-top: auto;
+          border-radius: 14px;
+          padding: 14px;
+          background: rgba(25, 179, 92, 0.05);
+          border: 1px solid rgba(25, 179, 92, 0.1);
+        }
+
+        .console-secure-head {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 4px;
+          font-size: 11px;
+          font-weight: 800;
+        }
+
+        .console-secure p {
+          margin: 0;
+          font-size: 10px;
+          color: rgba(68, 73, 51, 0.72);
+          line-height: 1.35;
+        }
+
+        .demo-console-center {
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          gap: 16px;
+          min-height: 0;
+        }
+
+        .demo-hero-panel {
+          border-radius: 18px;
+          overflow: hidden;
+          flex: 1;
+          min-height: 0;
+          display: flex;
+          flex-direction: column;
+        }
+
+        .demo-hero-image-wrap {
+          flex: 1;
+          min-height: 0;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .demo-hero-image {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          object-position: center;
+          display: block;
+        }
+
+        .demo-hero-image-wrap::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(0,0,0,0.06));
+          pointer-events: none;
+        }
+
+        .demo-hero-bottom-bar {
+          padding: 14px 18px;
+          border-top: 1px solid rgba(18, 20, 16, 0.08);
+          background: rgba(255, 255, 255, 0.42);
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+        }
+
+        .demo-hero-label {
+          font-size: 10px;
+          font-weight: 800;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: rgba(68, 73, 51, 0.58);
+          margin-bottom: 4px;
+        }
+
+        .demo-hero-value {
+          font-size: 14px;
+          font-weight: 800;
+          color: #181c1e;
+        }
+
+        .demo-hero-waveform {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          min-width: 72px;
+          justify-content: flex-end;
+        }
+
+        .demo-hero-waveform span {
+          width: 3px;
+          height: 4px;
+          border-radius: 999px;
+          background: var(--primary);
+          animation: wave 1.2s infinite ease-in-out;
+        }
+
+        .demo-hero-waveform span:nth-child(2) { animation-delay: 0.08s; }
+        .demo-hero-waveform span:nth-child(3) { animation-delay: 0.16s; }
+        .demo-hero-waveform span:nth-child(4) { animation-delay: 0.24s; }
+        .demo-hero-waveform span:nth-child(5) { animation-delay: 0.32s; }
+        .demo-hero-waveform span:nth-child(6) { animation-delay: 0.4s; }
+
+        .demo-input-card {
+          border-radius: 16px;
+          padding: 10px;
+          display: grid;
+          grid-template-columns: 1fr auto;
+          gap: 8px;
+        }
+
+        .console-input {
+          min-width: 0;
+          height: 48px;
+          border: 1px solid rgba(18, 20, 16, 0.08);
+          border-radius: 12px;
+          background: rgba(255,255,255,0.92);
+          padding: 0 14px;
+          color: #181c1e;
+          font-family: 'Manrope', sans-serif;
+          font-size: 14px;
+          outline: none;
+        }
+
+        .console-input:focus {
+          border-color: rgba(25, 179, 92, 0.5);
+          box-shadow: 0 0 0 3px rgba(25, 179, 92, 0.12);
+        }
+
+        .console-send-btn {
+          height: 48px;
+          border: 0;
+          border-radius: 12px;
+          background: var(--primary);
+          color: #ffffff;
+          padding: 0 20px;
+          font-family: 'Manrope', sans-serif;
+          font-size: 14px;
+          font-weight: 800;
+          cursor: pointer;
+          box-shadow: 0 10px 28px rgba(25, 179, 92, 0.22);
+        }
+
+        .console-send-btn:disabled,
+        .console-chip:disabled {
+          opacity: 0.55;
+          cursor: not-allowed;
+        }
+
+        .console-chip-row {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+
+        .console-chip {
+          border: 1px solid rgba(18, 20, 16, 0.08);
+          border-radius: 999px;
+          background: rgba(255,255,255,0.62);
+          color: #181c1e;
+          padding: 8px 12px;
+          font-size: 13px;
+          font-weight: 700;
+          cursor: pointer;
+        }
+
+        .demo-console-chat {
+          min-height: 0;
+        }
+
+        .console-chat-panel {
+          height: 100%;
+          min-height: 0;
+          border-radius: 18px;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
+
+        .console-chat-head {
+          padding: 16px;
+          border-bottom: 1px solid rgba(255,255,255,0.2);
+          background: rgba(255,255,255,0.15);
+        }
+
+        .chat-brand {
+          align-items: center;
+          gap: 12px;
+        }
+
+        .chat-icon {
+          color: var(--primary);
+        }
+
+        .chat-brand h3 {
+          margin: 0;
+          font-size: 14px;
+          font-weight: 800;
+        }
+
+        .chat-brand p {
+          margin: 2px 0 0;
+          font-size: 10px;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: 0.12em;
+          color: rgba(68, 73, 51, 0.48);
+        }
+
+        .console-chat-stream {
+          flex: 1;
+          min-height: 0;
+          overflow-y: auto;
+          padding: 18px 16px;
+          display: grid;
+          gap: 20px;
+          align-content: start;
+          background: transparent;
+        }
+
+        .console-message {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          max-width: 90%;
+        }
+
+        .console-message.user {
+          margin-left: auto;
+          align-items: flex-end;
+        }
+
+        .console-message-meta {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 10px;
+          font-weight: 800;
+          color: rgba(68, 73, 51, 0.4);
+        }
+
+        .console-message-speaker {
+          color: var(--primary);
+        }
+
+        .console-message-speaker.user {
+          color: #181c1e;
+        }
+
+        .console-message-bubble {
+          border-radius: 16px;
+          padding: 14px;
+          font-size: 13px;
+          line-height: 1.55;
+          box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+        }
+
+        .console-message-bubble.adam,
+        .console-message-bubble.adam-active {
+          background: rgba(255,255,255,0.96);
+          border: 1px solid rgba(18, 20, 16, 0.08);
+          border-top-left-radius: 4px;
+        }
+
+        .console-message-bubble.user {
+          background: rgba(25, 179, 92, 0.14);
+          border: 1px solid rgba(25, 179, 92, 0.18);
+          border-top-right-radius: 4px;
+        }
+
+        .console-thinking-dots {
+          display: flex;
+          gap: 4px;
+          margin-top: 12px;
+        }
+
+        .console-thinking-dots span {
+          width: 6px;
+          height: 6px;
+          border-radius: 999px;
+          background: var(--primary);
+          animation: wave 1.2s infinite ease-in-out;
+        }
+
+        .console-thinking-dots span:nth-child(2) { animation-delay: 0.1s; }
+        .console-thinking-dots span:nth-child(3) { animation-delay: 0.2s; }
+
+        .demo-welcome-overlay {
+          position: fixed;
+          inset: 0;
+          z-index: 100;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 16px;
+          background: rgba(0, 0, 0, 0.2);
+          backdrop-filter: blur(16px);
+          opacity: 0;
+          pointer-events: none;
+          transition: opacity 180ms ease;
+        }
+
+        .demo-welcome-overlay.show {
+          opacity: 1;
+          pointer-events: auto;
+        }
+
+        .demo-welcome-card {
+          width: 100%;
+          max-width: 340px;
+          border-radius: 14px;
+          padding: 20px;
+          text-align: center;
+          display: grid;
+          gap: 10px;
+          box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+        }
+
+        .demo-welcome-card h1 {
+          margin: 0;
+          font-size: 18px;
+          line-height: 1.3;
+          font-weight: 800;
+          color: #181c1e;
+        }
+
+        .demo-welcome-card p {
+          margin: 0;
+          font-size: 12px;
+          line-height: 1.5;
+          color: rgba(68, 73, 51, 0.72);
+        }
+
+        .demo-welcome-button {
+          width: 100%;
+          border: 0;
+          border-radius: 10px;
+          padding: 12px 16px;
+          background: var(--primary);
+          color: #ffffff;
+          font-family: 'Manrope', sans-serif;
+          font-size: 12px;
+          font-weight: 800;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          cursor: pointer;
+          box-shadow: 0 12px 26px rgba(25, 179, 92, 0.25);
+        }
+
+        .demo-welcome-button:hover {
+          filter: brightness(0.98);
+        }
+
+        @keyframes wave {
+          0%, 100% { transform: scaleY(0.7); opacity: 0.7; }
+          50% { transform: scaleY(1.8); opacity: 1; }
+        }
+
+        @media (min-width: 1180px) {
+          .demo-console-shell {
+            grid-template-columns: 256px minmax(0, 1fr) 400px;
+          }
+        }
+
+        @media (max-width: 1179px) {
+          .demo-console-shell {
+            grid-template-columns: 1fr;
+            height: auto;
+            min-height: 100vh;
+            overflow: auto;
+          }
+
+          .demo-console-sidebar,
+          .demo-console-chat {
+            order: 1;
+          }
+
+          .demo-console-center {
+            order: 0;
+            min-height: 560px;
+          }
+
+          .demo-console-chat {
+            min-height: 420px;
+          }
+
+          .demo-console-sidebar {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
+          .demo-console-shell {
+            padding-bottom: 24px;
+          }
+        }
+
+        @media (max-width: 760px) {
+          .demo-console-topbar {
+            padding: 0 16px;
+          }
+
+          .demo-console-shell {
+            padding: 76px 16px 20px;
+            gap: 16px;
+          }
+
+          .demo-console-sidebar {
+            grid-template-columns: 1fr;
+          }
+
+          .demo-input-card {
+            grid-template-columns: 1fr;
+          }
+
+          .demo-hero-bottom-bar {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+
+          .demo-hero-waveform {
+            justify-content: flex-start;
+          }
+        }
+
         .demo-topbar {
           height: 78px;
           border-bottom: 1px solid #2a2a2a;
@@ -1615,6 +2398,37 @@ export default function App() {
           margin: 0 0 16px;
           color: #bccabb;
           line-height: 1.5;
+        }
+
+        .demo-end-banner {
+          position: fixed;
+          left: 24px;
+          right: 24px;
+          bottom: 24px;
+          z-index: 40;
+          border-radius: 18px;
+          padding: 18px 20px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+          background: rgba(255, 255, 255, 0.82);
+          backdrop-filter: blur(12px);
+          border: 1px solid rgba(18, 20, 16, 0.08);
+          box-shadow: 0 18px 42px rgba(0, 0, 0, 0.2);
+        }
+
+        .demo-end-banner h2 {
+          margin: 0 0 6px;
+          font-family: 'Space Grotesk', sans-serif;
+          font-size: 20px;
+          line-height: 1.2;
+        }
+
+        .demo-end-banner p {
+          margin: 0;
+          font-size: 13px;
+          color: rgba(24, 28, 30, 0.68);
         }
 
         .joined-state-dark {
