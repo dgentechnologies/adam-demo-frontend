@@ -600,8 +600,6 @@ function OnboardingPage({ push }) {
 
   return (
     <main className="onboarding-page">
-      <div className="onboarding-mesh" aria-hidden="true" />
-
       <section className="onboarding-shell">
         <div className="onboarding-progress">
           <div className="onboarding-progress-row">
@@ -1338,18 +1336,12 @@ export default function App() {
           place-items: center;
           padding: 24px 16px;
           background: #ffffff;
+          background-image: radial-gradient(circle at 50% 40%, #f9f9f9 0%, #f9f9f9 42%, rgba(204, 255, 0, 0.15) 72%, rgba(19, 19, 19, 0.05) 100%);
+          background-size: 200% 200%;
+          animation: gradientAnimation 15s ease infinite;
           color: var(--text-charcoal);
           position: relative;
           overflow: hidden;
-        }
-
-        .onboarding-mesh {
-          position: absolute;
-          inset: 0;
-          background: radial-gradient(circle at 50% 40%, #f9f9f9 0%, #f9f9f9 42%, rgba(204, 255, 0, 0.15) 72%, rgba(19, 19, 19, 0.05) 100%);
-          background-size: 200% 200%;
-          animation: gradientAnimation 15s ease infinite;
-          pointer-events: none;
         }
 
         .onboarding-shell {
@@ -1358,6 +1350,7 @@ export default function App() {
           position: relative;
           z-index: 1;
           padding: 8px 0;
+          pointer-events: auto;
         }
 
         .onboarding-progress {
