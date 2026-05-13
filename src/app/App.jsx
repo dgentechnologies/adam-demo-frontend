@@ -1433,11 +1433,12 @@ export default function App() {
           position: relative;
           z-index: 1;
           padding: 0 10px;
-          background: rgba(255, 255, 255, 0.95);
+          background: transparent;
           text-transform: uppercase;
           font-size: 11px;
+          font-weight: 800;
           letter-spacing: 0.08em;
-          color: rgba(19, 19, 19, 0.45);
+          color: rgba(19, 19, 19, 0.55);
         }
 
         .btn-google {
