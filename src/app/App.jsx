@@ -364,115 +364,106 @@ function LoginPage({ push }) {
       <div className="premium-gradient-bg" aria-hidden="true" />
       <HeaderBar />
 
-      <section className="landing-main">
-        <aside className="landing-left">
-          <img
-            src="/images/login-image.png"
-            alt="ADAM robot"
-            className="landing-left-image"
-          />
-        </aside>
+      <section className="landing-main login-hero-shell">
+        <div className="login-hero-overlay" aria-hidden="true" />
+        <div className="form-card">
+          <div className="form-heading">
+            <h2>Create an Account</h2>
+            <p>Start your journey with DGEN today.</p>
+          </div>
 
-        <section className="landing-right">
-          <div className="form-card">
-            <div className="form-heading">
-              <h2>Create an Account</h2>
-              <p>Start your journey with DGEN today.</p>
+          <form className="stack-lg" onSubmit={handleSubmit}>
+            <div className="grid-two">
+              <div className="stack-sm">
+                <label htmlFor="first-name">FIRST NAME</label>
+                <input
+                  id="first-name"
+                  className="input-light"
+                  type="text"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="stack-sm">
+                <label htmlFor="last-name">LAST NAME</label>
+                <input
+                  id="last-name"
+                  className="input-light"
+                  type="text"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  required
+                />
+              </div>
             </div>
 
-            <form className="stack-lg" onSubmit={handleSubmit}>
-              <div className="grid-two">
-                <div className="stack-sm">
-                  <label htmlFor="first-name">FIRST NAME</label>
-                  <input
-                    id="first-name"
-                    className="input-light"
-                    type="text"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="stack-sm">
-                  <label htmlFor="last-name">LAST NAME</label>
-                  <input
-                    id="last-name"
-                    className="input-light"
-                    type="text"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
+            <div className="stack-sm">
+              <label htmlFor="email">EMAIL ADDRESS</label>
+              <input
+                id="email"
+                className="input-light"
+                type="email"
+                value={emailValue}
+                onChange={(e) => setEmailValue(e.target.value)}
+                required
+              />
+            </div>
 
-              <div className="stack-sm">
-                <label htmlFor="email">EMAIL ADDRESS</label>
-                <input
-                  id="email"
-                  className="input-light"
-                  type="email"
-                  value={emailValue}
-                  onChange={(e) => setEmailValue(e.target.value)}
-                  required
-                />
-              </div>
+            <div className="stack-sm">
+              <label htmlFor="password">PASSWORD</label>
+              <input
+                id="password"
+                className="input-light"
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
 
-              <div className="stack-sm">
-                <label htmlFor="password">PASSWORD</label>
-                <input
-                  id="password"
-                  className="input-light"
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-              </div>
+            <div className="stack-sm">
+              <label htmlFor="confirm-password">CONFIRM PASSWORD</label>
+              <input
+                id="confirm-password"
+                className="input-light"
+                type="password"
+                placeholder="••••••••"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+              />
+            </div>
 
-              <div className="stack-sm">
-                <label htmlFor="confirm-password">CONFIRM PASSWORD</label>
-                <input
-                  id="confirm-password"
-                  className="input-light"
-                  type="password"
-                  placeholder="••••••••"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                />
-              </div>
+            <label className="terms-row">
+              <input type="checkbox" checked={termsAccepted} onChange={(e) => setTermsAccepted(e.target.checked)} />
+              <span>
+                I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.
+              </span>
+            </label>
 
-              <label className="terms-row">
-                <input type="checkbox" checked={termsAccepted} onChange={(e) => setTermsAccepted(e.target.checked)} />
-                <span>
-                  I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.
-                </span>
-              </label>
+            {error ? <p className="error-text dark">{error}</p> : null}
 
-              {error ? <p className="error-text dark">{error}</p> : null}
+            <button className="btn-primary" type="submit" disabled={loading}>
+              {loading ? 'Signing Up...' : 'Sign Up'}
+            </button>
 
-              <button className="btn-primary" type="submit" disabled={loading}>
-                {loading ? 'Signing Up...' : 'Sign Up'}
-              </button>
+            <div className="or-divider">
+              <span>or continue with</span>
+            </div>
 
-              <div className="or-divider">
-                <span>or continue with</span>
-              </div>
-
-              <button type="button" className="btn-google" onClick={handleGoogleSignIn} disabled={loading}>
-                <svg className="google-icon" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
-                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                </svg>
-                <span>Continue with Google</span>
-              </button>
-            </form>
-          </div>
-        </section>
+            <button type="button" className="btn-google" onClick={handleGoogleSignIn} disabled={loading}>
+              <svg className="google-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+              </svg>
+              <span>Continue with Google</span>
+            </button>
+          </form>
+        </div>
       </section>
     </main>
   );
@@ -1174,72 +1165,71 @@ export default function App() {
         .landing-main {
           flex: 1;
           display: flex;
-          padding-top: 62px;
+          justify-content: flex-end;
+          align-items: center;
+          padding: 80px 72px 24px;
           position: relative;
           z-index: 1;
           overflow: hidden;
+          background-image: url('/images/login-image2.png');
+          background-size: cover;
+          background-position: center center;
+          background-repeat: no-repeat;
         }
 
-        .landing-left {
-          width: 50%;
-          background: var(--surface-container);
-          position: relative;
-          overflow: hidden;
-          display: none;
+        .login-hero-shell {
+          min-height: 100%;
         }
 
-        .landing-left-image {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          object-position: center;
-          display: block;
-        }
-
-        .landing-right {
-          width: 100%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 12px 16px;
-          overflow-y: auto;
+        .login-hero-overlay {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(180deg, rgba(15, 18, 20, 0.18), rgba(15, 18, 20, 0.28));
+          backdrop-filter: blur(1px);
+          pointer-events: none;
         }
 
         .form-card {
+          position: relative;
+          z-index: 1;
           width: 100%;
-          max-width: 500px;
-          background: rgba(255, 255, 255, 0.85);
-          border: 1px solid rgba(255, 255, 255, 0.6);
-          border-radius: 12px;
-          padding: 22px 24px;
-          backdrop-filter: blur(12px);
+          max-width: 520px;
+          background: rgba(255, 255, 255, 0.62);
+          border: 1px solid rgba(255, 255, 255, 0.44);
+          border-radius: 28px;
+          padding: 24px 26px;
+          backdrop-filter: blur(16px) saturate(140%);
+          -webkit-backdrop-filter: blur(16px) saturate(140%);
+          box-shadow:
+            0 20px 60px rgba(0, 0, 0, 0.18),
+            inset 0 1px 0 rgba(255, 255, 255, 0.34);
         }
 
         .form-heading {
-          margin-bottom: 16px;
+          margin-bottom: 18px;
         }
 
         .form-heading h2 {
-          margin: 0 0 4px;
-          font-size: 24px;
-          line-height: 30px;
-          letter-spacing: -0.01em;
+          margin: 0 0 6px;
+          font-size: 26px;
+          line-height: 32px;
+          letter-spacing: -0.02em;
         }
 
         .form-heading p {
           margin: 0;
-          color: rgba(19, 19, 19, 0.6);
-          font-size: 13px;
+          color: rgba(19, 19, 19, 0.62);
+          font-size: 14px;
         }
 
         .stack-lg {
           display: grid;
-          gap: 10px;
+          gap: 12px;
         }
 
         .stack-sm {
           display: grid;
-          gap: 4px;
+          gap: 5px;
         }
 
         .grid-two {
@@ -1259,15 +1249,20 @@ export default function App() {
 
         .input-light {
           width: 100%;
-          border: 1px solid transparent;
-          border-radius: 8px;
-          background: var(--surface-variant);
+          border: 1px solid rgba(255, 255, 255, 0.44);
+          border-radius: 14px;
+          background: rgba(255, 255, 255, 0.66);
           color: var(--text-charcoal);
-          padding: 8px 12px;
-          font-size: 13px;
+          padding: 12px 14px;
+          font-size: 14px;
           font-family: 'Inter', sans-serif;
           outline: none;
-          transition: border-color 200ms ease, background-color 200ms ease;
+          transition: border-color 200ms ease, background-color 200ms ease, box-shadow 200ms ease;
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.42);
+        }
+
+        .input-light::placeholder {
+          color: rgba(19, 19, 19, 0.34);
         }
 
         .input-light:focus {
@@ -1280,7 +1275,7 @@ export default function App() {
           align-items: center;
           gap: 8px;
           font-size: 12px;
-          color: rgba(19, 19, 19, 0.6);
+          color: rgba(19, 19, 19, 0.66);
         }
 
         .terms-row a {
@@ -1290,13 +1285,14 @@ export default function App() {
         .btn-primary {
           width: 100%;
           border: 0;
-          border-radius: 8px;
-          padding: 11px 14px;
-          background: var(--green-main);
-          color: #003918;
+          border-radius: 14px;
+          padding: 12px 14px;
+          background: linear-gradient(135deg, #56e083 0%, #19b35c 100%);
+          color: #ffffff;
           font-size: 14px;
-          font-weight: 700;
+          font-weight: 800;
           cursor: pointer;
+          box-shadow: 0 12px 30px rgba(25, 179, 92, 0.24);
         }
 
         .btn-primary:disabled {
@@ -1334,27 +1330,28 @@ export default function App() {
 
         .btn-google {
           width: 100%;
-          border: 1px solid rgba(19,19,19,0.13);
-          border-radius: 8px;
-          background: #ffffff;
+          border: 1px solid rgba(255, 255, 255, 0.46);
+          border-radius: 14px;
+          background: rgba(255, 255, 255, 0.58);
           color: var(--text-charcoal);
-          padding: 10px 14px;
+          padding: 12px 14px;
           font-size: 13px;
-          font-weight: 600;
+          font-weight: 700;
           cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
           gap: 10px;
-          transition: background 180ms ease, box-shadow 180ms ease;
-          box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+          transition: background 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+          box-shadow: 0 1px 4px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.36);
           font-family: 'Inter', sans-serif;
           letter-spacing: 0.01em;
         }
 
         .btn-google:hover {
-          background: #f8f8f8;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+          background: rgba(255, 255, 255, 0.72);
+          box-shadow: 0 2px 10px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.46);
+          transform: translateY(-1px);
         }
 
         .google-icon {
@@ -1362,6 +1359,38 @@ export default function App() {
           height: 18px;
           flex-shrink: 0;
         }
++
++        @media (max-width: 900px) {
++          .header-shell {
++            padding-left: 16px;
++            padding-right: 16px;
++          }
++
++          .landing-main {
++            padding: 72px 16px 16px;
++          }
++
++          .form-card {
++            padding: 20px;
++            border-radius: 24px;
++          }
++        }
++
++        @media (max-width: 640px) {
++          .grid-two {
++            grid-template-columns: 1fr;
++          }
++
++          .form-heading h2 {
++            font-size: 24px;
++            line-height: 30px;
++          }
++
++          .btn-primary,
++          .btn-google {
++            border-radius: 12px;
++          }
++        }
 
         .footer-shell {
           width: 100%;
