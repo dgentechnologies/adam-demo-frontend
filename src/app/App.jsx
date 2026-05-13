@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { MessageCircle } from 'lucide-react';
+import { ArrowRight, Mail, MessageCircle, User, X } from 'lucide-react';
 import { createUserWithEmailAndPassword, onAuthStateChanged, signInWithPopup, updateProfile } from 'firebase/auth';
 import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { getClientAuth, getClientDb, googleProvider, isFirebaseConfigured } from '@/lib/firebase';
@@ -701,15 +701,243 @@ function formatRemaining(totalSeconds) {
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
+function pcm16ToBase64(float32Samples) {
+  const pcm16 = new Int16Array(float32Samples.length);
+  for (let i = 0; i < float32Samples.length; i += 1) {
+    const sample = Math.max(-1, Math.min(1, float32Samples[i]));
+    pcm16[i] = sample < 0 ? sample * 32768 : sample * 32767;
+  }
+  const bytes = new Uint8Array(pcm16.buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += 1) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
+function base64ToFloat32(base64) {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  const pcm16 = new Int16Array(bytes.buffer);
+  const out = new Float32Array(pcm16.length);
+  for (let i = 0; i < pcm16.length; i += 1) {
+    out[i] = pcm16[i] / 32768;
+  }
+  return out;
+}
+
 function DemoPage({ push }) {
   const { userId, authToken, onboardingData } = useAppContext();
+  const RELAY_URL = process.env.NEXT_PUBLIC_RELAY_URL || '';
   const [welcomeOpen, setWelcomeOpen] = useState(true);
-  const [demoStarted, setDemoStarted] = useState(false);
+  const [sessionState, setSessionState] = useState('idle');
   const [timeLeft, setTimeLeft] = useState(300);
   const [endOpen, setEndOpen] = useState(false);
-  const [query, setQuery] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+  const [turnCount, setTurnCount] = useState(0);
+  const [turnsAllowed, setTurnsAllowed] = useState(20);
+  const [sessionDurationMs, setSessionDurationMs] = useState(300000);
+  const [startedAt, setStartedAt] = useState(null);
+  const [sessionId, setSessionId] = useState('');
+  const [transcript, setTranscript] = useState([]);
+  const [micPermission, setMicPermission] = useState('requesting');
+  const [adamSpeaking, setAdamSpeaking] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+
+  const wsRef = useRef(null);
+  const transcriptRef = useRef(null);
   const intervalRef = useRef(null);
   const didEndRef = useRef(false);
+  const micStreamRef = useRef(null);
+  const micAudioCtxRef = useRef(null);
+  const micSourceRef = useRef(null);
+  const micProcessorRef = useRef(null);
+  const speakerCtxRef = useRef(null);
+  const nextSpeakerStartRef = useRef(0);
+  const speechEndTimerRef = useRef(null);
+
+  const cleanupMicCapture = () => {
+    if (micProcessorRef.current) {
+      micProcessorRef.current.disconnect();
+      micProcessorRef.current = null;
+    }
+    if (micSourceRef.current) {
+      micSourceRef.current.disconnect();
+      micSourceRef.current = null;
+    }
+    if (micAudioCtxRef.current) {
+      micAudioCtxRef.current.close();
+      micAudioCtxRef.current = null;
+    }
+    if (micStreamRef.current) {
+      micStreamRef.current.getTracks().forEach((track) => track.stop());
+      micStreamRef.current = null;
+    }
+    setIsRecording(false);
+  };
+
+  const cleanupSpeaker = () => {
+    if (speechEndTimerRef.current) {
+      clearTimeout(speechEndTimerRef.current);
+      speechEndTimerRef.current = null;
+    }
+    if (speakerCtxRef.current) {
+      speakerCtxRef.current.close();
+      speakerCtxRef.current = null;
+    }
+    nextSpeakerStartRef.current = 0;
+    setAdamSpeaking(false);
+  };
+
+  const stopRealtimeResources = () => {
+    cleanupMicCapture();
+    cleanupSpeaker();
+    if (wsRef.current) {
+      try {
+        wsRef.current.close();
+      } catch (_error) {
+        // ignore close failures
+      }
+      wsRef.current = null;
+    }
+  };
+
+  const pushSystemTranscript = (text, tone = 'adam') => {
+    setTranscript((prev) => [
+      ...prev,
+      {
+        speaker: 'ADAM',
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        text,
+        tone,
+      },
+    ]);
+  };
+
+  const playSpeakerChunk = async (base64Pcm24k) => {
+    const ctx = speakerCtxRef.current || new AudioContext({ sampleRate: 24000 });
+    speakerCtxRef.current = ctx;
+
+    if (ctx.state === 'suspended') {
+      await ctx.resume();
+    }
+
+    const floatSamples = base64ToFloat32(base64Pcm24k);
+    const buffer = ctx.createBuffer(1, floatSamples.length, 24000);
+    buffer.copyToChannel(floatSamples, 0);
+
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(ctx.destination);
+
+    const now = ctx.currentTime;
+    const startAt = Math.max(now + 0.01, nextSpeakerStartRef.current);
+    source.start(startAt);
+    nextSpeakerStartRef.current = startAt + buffer.duration;
+
+    setAdamSpeaking(true);
+    setIsRecording(false);
+
+    if (speechEndTimerRef.current) {
+      clearTimeout(speechEndTimerRef.current);
+    }
+
+    const untilEndMs = Math.max(0, (nextSpeakerStartRef.current - ctx.currentTime) * 1000) + 360;
+    speechEndTimerRef.current = setTimeout(() => {
+      setAdamSpeaking(false);
+      if (sessionState === 'active' && micPermission === 'granted') {
+        setIsRecording(true);
+      }
+    }, untilEndMs);
+  };
+
+  const sendWsMessage = (message) => {
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+      return;
+    }
+    wsRef.current.send(JSON.stringify(message));
+  };
+
+  const closeSession = async (reason, shouldNotifyBackend = true) => {
+    if (didEndRef.current) {
+      return;
+    }
+
+    didEndRef.current = true;
+    setSessionState('ended');
+    setEndOpen(true);
+    setIsRecording(false);
+
+    clearInterval(intervalRef.current);
+    stopRealtimeResources();
+
+    if (shouldNotifyBackend && authToken) {
+      try {
+        await apiDemoEnd({
+          userId,
+          idToken: authToken,
+          sessionId,
+          reason,
+          endTime: Date.now(),
+        });
+      } catch (_error) {
+        // backend errors should not block UI end-state
+      }
+    }
+  };
+
+  const endConversation = async () => {
+    sendWsMessage({ type: 'disconnect' });
+    await closeSession('user_disconnect', true);
+  };
+
+  const setupMicCapture = async () => {
+    try {
+      setMicPermission('requesting');
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { sampleRate: 16000, channelCount: 1, echoCancellation: true },
+      });
+
+      micStreamRef.current = stream;
+      const audioCtx = new AudioContext({ sampleRate: 16000 });
+      micAudioCtxRef.current = audioCtx;
+      const source = audioCtx.createMediaStreamSource(stream);
+      micSourceRef.current = source;
+      const processor = audioCtx.createScriptProcessor(4096, 1, 1);
+      micProcessorRef.current = processor;
+
+      processor.onaudioprocess = (event) => {
+        if (sessionState !== 'active' || adamSpeaking || micPermission !== 'granted') {
+          return;
+        }
+
+        const ws = wsRef.current;
+        if (!ws || ws.readyState !== WebSocket.OPEN) {
+          return;
+        }
+
+        const samples = event.inputBuffer.getChannelData(0);
+        const payload = pcm16ToBase64(samples);
+        ws.send(JSON.stringify({ type: 'audio', data: payload }));
+      };
+
+      source.connect(processor);
+      processor.connect(audioCtx.destination);
+
+      setMicPermission('granted');
+      if (sessionState === 'active' && !adamSpeaking) {
+        setIsRecording(true);
+      }
+    } catch (_error) {
+      setMicPermission('denied');
+      setIsRecording(false);
+      setErrorMsg('Microphone permission denied. Please allow mic access to continue.');
+    }
+  };
 
   useEffect(() => {
     if (!userId) {
@@ -718,60 +946,191 @@ function DemoPage({ push }) {
   }, [push, userId]);
 
   useEffect(() => {
-    if (!demoStarted || endOpen) {
+    if (sessionState !== 'active' || !startedAt || endOpen) {
       return undefined;
     }
 
     intervalRef.current = setInterval(() => {
-      setTimeLeft((previous) => (previous <= 1 ? 0 : previous - 1));
+      const elapsedMs = Date.now() - startedAt;
+      const remainingSeconds = Math.max(0, Math.ceil((sessionDurationMs - elapsedMs) / 1000));
+      setTimeLeft(remainingSeconds);
     }, 1000);
 
     return () => clearInterval(intervalRef.current);
-  }, [demoStarted, endOpen]);
+  }, [sessionState, startedAt, sessionDurationMs, endOpen]);
 
   useEffect(() => {
     if (timeLeft > 0 || didEndRef.current) {
       return;
     }
 
-    didEndRef.current = true;
-    clearInterval(intervalRef.current);
-    setEndOpen(true);
-    apiDemoEnd({ userId, idToken: authToken, endTime: Date.now() });
-  }, [timeLeft, userId, authToken]);
+    sendWsMessage({ type: 'disconnect' });
+    closeSession('timeout', true);
+  }, [timeLeft]);
+
+  useEffect(() => {
+    if (sessionState === 'active' && micPermission === 'requesting' && !micStreamRef.current) {
+      setupMicCapture();
+    }
+    if (sessionState === 'active' && micPermission === 'granted' && !adamSpeaking) {
+      setIsRecording(true);
+    }
+    if (adamSpeaking) {
+      setIsRecording(false);
+    }
+  }, [sessionState, micPermission, adamSpeaking]);
+
+  useEffect(() => {
+    transcriptRef.current?.scrollTo({ top: transcriptRef.current.scrollHeight, behavior: 'smooth' });
+  }, [transcript]);
+
+  useEffect(() => {
+    const onBeforeUnload = () => {
+      if (!didEndRef.current && sessionState === 'active') {
+        sendWsMessage({ type: 'disconnect' });
+        closeSession('user_disconnect', true);
+      }
+    };
+
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', onBeforeUnload);
+      if (!didEndRef.current && (sessionState === 'active' || sessionState === 'connecting')) {
+        sendWsMessage({ type: 'disconnect' });
+        closeSession('user_disconnect', true);
+      }
+    };
+  }, [sessionState, authToken, sessionId, userId]);
 
   const beginSession = async () => {
     setWelcomeOpen(false);
-    setDemoStarted(true);
-    await apiDemoStart({ userId, idToken: authToken, startTime: Date.now() });
+    setSessionState('connecting');
+    setErrorMsg('');
+
+    if (!RELAY_URL) {
+      setErrorMsg('Relay URL is not configured.');
+      setSessionState('error');
+      return;
+    }
+
+    try {
+      const startResp = await apiDemoStart({ userId, idToken: authToken, startTime: Date.now() });
+      if (!startResp.ok) {
+        setErrorMsg(startResp.data?.error || 'Unable to start session.');
+        setSessionState('error');
+        return;
+      }
+
+      const nextSessionId = startResp.data?.sessionId || '';
+      setSessionId(nextSessionId);
+
+      const tokenResp = await fetch('/api/relay-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken: authToken }),
+      });
+
+      const tokenJson = await tokenResp.json().catch(() => ({}));
+      if (!tokenResp.ok || !tokenJson.token) {
+        setErrorMsg(tokenJson?.error || 'Unable to authenticate relay connection.');
+        setSessionState('error');
+        return;
+      }
+
+      const ws = new WebSocket(RELAY_URL);
+      wsRef.current = ws;
+
+      ws.onopen = () => {
+        ws.send(JSON.stringify({ type: 'auth', token: tokenJson.token }));
+      };
+
+      ws.onmessage = async (event) => {
+        let incoming;
+        try {
+          incoming = JSON.parse(event.data);
+        } catch (_error) {
+          return;
+        }
+
+        if (incoming.type === 'session_ready') {
+          const duration = Number(incoming.durationMs || 300000);
+          setTurnsAllowed(Number(incoming.turnsAllowed || 20));
+          setSessionDurationMs(duration);
+          setTimeLeft(Math.ceil(duration / 1000));
+          setStartedAt(Date.now());
+          setSessionState('active');
+          setIsRecording(micPermission === 'granted');
+          pushSystemTranscript('Session online. You can start speaking now.');
+          return;
+        }
+
+        if (incoming.type === 'audio' && incoming.data) {
+          await playSpeakerChunk(incoming.data);
+          return;
+        }
+
+        if (incoming.type === 'transcript') {
+          const isAdam = incoming.role === 'adam';
+          const entry = {
+            speaker: isAdam ? 'ADAM' : 'YOU',
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            text: incoming.text || '',
+            tone: isAdam ? 'adam' : 'user',
+          };
+          setTranscript((prev) => [...prev, entry]);
+          if (!isAdam) {
+            setTurnCount((prev) => prev + 1);
+          }
+          return;
+        }
+
+        if (incoming.type === 'face_state') {
+          const speaking = incoming.state === 'speaking';
+          setAdamSpeaking(speaking);
+          if (!speaking && sessionState === 'active' && micPermission === 'granted') {
+            setIsRecording(true);
+          }
+          return;
+        }
+
+        if (incoming.type === 'turn_complete') {
+          setAdamSpeaking(false);
+          if (sessionState === 'active' && micPermission === 'granted') {
+            setIsRecording(true);
+          }
+          return;
+        }
+
+        if (incoming.type === 'session_end') {
+          closeSession(incoming.reason || 'cap_reached', false);
+          return;
+        }
+
+        if (incoming.type === 'error') {
+          setErrorMsg(`${incoming.code || 'relay_error'}: ${incoming.message || 'Unknown relay error'}`);
+          if (incoming.code === 'auth_failed' || incoming.code === 'cap_exceeded') {
+            closeSession(incoming.code, false);
+          }
+        }
+      };
+
+      ws.onerror = () => {
+        setErrorMsg('WebSocket relay connection failed.');
+        setSessionState('error');
+      };
+
+      ws.onclose = () => {
+        if (!didEndRef.current && sessionState !== 'error') {
+          closeSession('connection_closed', true);
+        }
+      };
+    } catch (_error) {
+      setErrorMsg('Unable to start live session. Please retry.');
+      setSessionState('error');
+    }
   };
 
   const timerColor = timeLeft <= 30 ? '#dc2626' : timeLeft <= 60 ? '#d97706' : '#56e083';
-  const telemetryItems = [
-    { label: 'Microphone', value: 'Active', icon: 'mic' },
-    { label: 'Low-Latency Link', value: '12ms', icon: 'wifi' },
-    { label: 'Vision Feed', value: 'Standby', icon: 'videocam', muted: true },
-  ];
-  const transcript = [
-    {
-      speaker: 'ADAM',
-      time: '14:02',
-      text: 'Hello! I\'ve completed the analysis of the quarterly data. Would you like me to walk you through the key performance indicators first, or should we jump straight to the forecasting models?',
-      tone: 'adam',
-    },
-    {
-      speaker: 'YOU',
-      time: '14:03',
-      text: 'Let\'s start with the KPIs. Focus specifically on the retention rates in the enterprise sector.',
-      tone: 'user',
-    },
-    {
-      speaker: 'ADAM',
-      time: '14:03',
-      text: 'Understood. Fetching the retention metrics for Enterprise accounts...',
-      tone: 'adam-active',
-    },
-  ];
 
   return (
     <main className="demo-console-page">
@@ -782,7 +1141,19 @@ function DemoPage({ push }) {
         <div className="header-brand">
           <img src="/images/logo.png" alt="Dgen Technologies" className="demo-brand-logo" />
         </div>
-        <p className="demo-timer mono-timer" style={{ color: timerColor }}>{formatRemaining(timeLeft)}</p>
+        <div className="demo-topbar-actions">
+          <p className="demo-timer mono-timer" style={{ color: timerColor }}>
+            {formatRemaining(timeLeft)}
+          </p>
+          <button
+            className="demo-end-inline"
+            type="button"
+            onClick={endConversation}
+            disabled={sessionState !== 'active' && sessionState !== 'connecting'}
+          >
+            End conversation
+          </button>
+        </div>
       </header>
 
       <main className={`demo-console-shell ${welcomeOpen ? 'blurred' : ''}`}>
@@ -798,7 +1169,20 @@ function DemoPage({ push }) {
               </div>
             </div>
 
-            <div className="console-chat-stream scroll-hide">
+            <div className="console-chat-stream scroll-hide" ref={transcriptRef}>
+              {transcript.length === 0 ? (
+                <div className="console-message adam">
+                  <div className="console-message-meta">
+                    <span className="console-message-speaker adam">ADAM</span>
+                    <span>Live</span>
+                  </div>
+                  <div className="console-message-bubble adam">
+                    {sessionState === 'active'
+                      ? 'I am listening. Say hello to begin.'
+                      : 'Session is preparing. Start the live session to begin.'}
+                  </div>
+                </div>
+              ) : null}
               {transcript.map((message) => (
                 <div
                   key={`${message.speaker}-${message.time}-${message.text.slice(0, 12)}`}
@@ -821,6 +1205,17 @@ function DemoPage({ push }) {
                 </div>
               ))}
             </div>
+
+            <div className="demo-session-meta">
+              <span>
+                Turns: {turnCount}/{turnsAllowed}
+              </span>
+              <span>
+                Mic: {micPermission === 'granted' ? (isRecording ? 'Listening' : adamSpeaking ? 'Paused while ADAM speaks' : 'Ready') : micPermission === 'denied' ? 'Blocked' : 'Requesting'}
+              </span>
+            </div>
+
+            {errorMsg ? <p className="error-text dark">{errorMsg}</p> : null}
           </section>
         </aside>
       </main>
@@ -850,14 +1245,17 @@ function DemoPage({ push }) {
   );
 }
 
-function WaitlistPage() {
+function WaitlistPage({ push }) {
   const { onboardingData, email } = useAppContext();
   const [name, setName] = useState(onboardingData.name || '');
   const [emailValue, setEmailValue] = useState(email || '');
   const [message, setMessage] = useState('');
+  const [rating, setRating] = useState(4);
   const [loading, setLoading] = useState(false);
   const [joined, setJoined] = useState(false);
   const [error, setError] = useState('');
+
+  const WAITLIST_URL = 'https://dgentechnologies.com/products/adam';
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -869,6 +1267,7 @@ function WaitlistPage() {
       email: emailValue,
       company: '',
       use_case: message,
+      rating,
       referral: onboardingData.referral,
     });
     setLoading(false);
@@ -882,63 +1281,123 @@ function WaitlistPage() {
   };
 
   return (
-    <main className="flow-page">
-      <section className="flow-card">
-        {!joined ? (
-          <>
-            <h2 className="flow-title">Be the first to get ADAM.</h2>
-            <p className="flow-subtitle">Early access opens soon. Drop your email and we&apos;ll reach out.</p>
+    <main className="waitlist-page">
+      <header className="waitlist-topbar" aria-label="Session review header">
+        <img src="/images/logo.png" alt="Dgen Technologies" className="waitlist-logo" />
+        <button className="waitlist-close" type="button" aria-label="Close session review" onClick={() => push('/demo')}>
+          <X size={18} />
+        </button>
+      </header>
 
-            <form className="stack-lg" onSubmit={handleSubmit}>
-              <div className="stack-sm">
-                <label htmlFor="wl-name">Full name</label>
-                <input
-                  id="wl-name"
-                  className="input-dark"
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="stack-sm">
-                <label htmlFor="wl-email">Email</label>
-                <input
-                  id="wl-email"
-                  className="input-dark"
-                  type="email"
-                  value={emailValue}
-                  onChange={(e) => setEmailValue(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="stack-sm">
-                <label htmlFor="wl-message">Anything you&apos;d like us to know?</label>
-                <textarea
-                  id="wl-message"
-                  className="input-dark"
-                  rows={4}
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                />
-              </div>
-
-              {error ? <p className="error-text">{error}</p> : null}
-
-              <button className="btn-dark" type="submit" disabled={loading}>
-                {loading ? 'Joining...' : 'Join waitlist'}
-              </button>
-            </form>
-          </>
-        ) : (
-          <div className="joined-state-dark">
-            <div className="checkmark">✓</div>
-            <h2 className="flow-title">You&apos;re on the list.</h2>
-            <p className="flow-subtitle">We&apos;ll be in touch soon. Follow @DgenTech for updates.</p>
+      <section className="waitlist-shell">
+        <div className="waitlist-progress">
+          <div className="waitlist-progress-row">
+            <span>Session Review</span>
+            <span>Waitlist Status: Pending</span>
           </div>
-        )}
+          <div className="waitlist-progress-track">
+            <div className="waitlist-progress-fill" />
+          </div>
+        </div>
+
+        <article className="waitlist-card">
+          {!joined ? (
+            <>
+              <h2 className="waitlist-title">How was your session?</h2>
+              <p className="waitlist-subtitle">
+                Your feedback helps us refine the neural architecture. Join the priority waitlist for early access.
+              </p>
+
+              <form className="waitlist-form" onSubmit={handleSubmit}>
+                <div className="waitlist-section">
+                  <label htmlFor="session-rating" className="waitlist-label">Session Rating</label>
+                  <div id="session-rating" className="waitlist-stars" role="radiogroup" aria-label="Session rating">
+                    {[1, 2, 3, 4, 5].map((value) => (
+                      <button
+                        key={value}
+                        type="button"
+                        className={`waitlist-star ${value <= rating ? 'active' : ''}`}
+                        aria-label={`Rate ${value} out of 5`}
+                        aria-checked={value === rating}
+                        role="radio"
+                        onClick={() => setRating(value)}
+                      >
+                        ★
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="waitlist-section">
+                  <label htmlFor="wl-message" className="waitlist-label">Comments &amp; Observations</label>
+                  <textarea
+                    id="wl-message"
+                    className="waitlist-textarea"
+                    rows={4}
+                    value={message}
+                    placeholder="Share any specific feedback on ADAM's performance..."
+                    onChange={(e) => setMessage(e.target.value)}
+                  />
+                </div>
+
+                <div className="waitlist-grid">
+                  <div className="waitlist-section">
+                    <label htmlFor="wl-name" className="waitlist-label">Full Name</label>
+                    <div className="waitlist-input-wrap">
+                      <User size={16} aria-hidden="true" />
+                      <input
+                        id="wl-name"
+                        className="waitlist-input"
+                        type="text"
+                        value={name}
+                        placeholder="John Doe"
+                        onChange={(e) => setName(e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="waitlist-section">
+                    <label htmlFor="wl-email" className="waitlist-label">Email Address</label>
+                    <div className="waitlist-input-wrap">
+                      <Mail size={16} aria-hidden="true" />
+                      <input
+                        id="wl-email"
+                        className="waitlist-input"
+                        type="email"
+                        value={emailValue}
+                        placeholder="john@example.com"
+                        onChange={(e) => setEmailValue(e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {error ? <p className="error-text">Unable to join right now.</p> : null}
+
+                <div className="waitlist-actions">
+                  <button className="waitlist-later" type="button" onClick={() => push('/demo')}>
+                    Maybe later
+                  </button>
+                  <button className="waitlist-submit" type="submit" disabled={loading}>
+                    {loading ? 'Joining...' : 'Join the Waitlist'}
+                    <ArrowRight size={16} />
+                  </button>
+                </div>
+              </form>
+            </>
+          ) : (
+            <div className="waitlist-success" role="status" aria-live="polite">
+              <h2 className="waitlist-title">You&apos;re on the priority list.</h2>
+              <p className="waitlist-subtitle">Thanks for the review. We&apos;ll contact you with early access updates.</p>
+              <a className="waitlist-submit waitlist-link" href={WAITLIST_URL} target="_blank" rel="noreferrer">
+                Open ADAM Waitlist
+                <ArrowRight size={16} />
+              </a>
+            </div>
+          )}
+        </article>
       </section>
     </main>
   );
@@ -976,7 +1435,7 @@ function RouterView() {
   }
 
   if (route === '/waitlist') {
-    return <WaitlistPage />;
+    return <WaitlistPage push={push} />;
   }
 
   return <LoginPage push={push} />;
@@ -992,7 +1451,7 @@ export default function App() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&family=Space+Grotesk:wght@400;500;600;700&family=Hanken+Grotesk:wght@400;500&display=swap');
 
         :root {
           --green-main: #56e083;
@@ -1389,38 +1848,38 @@ export default function App() {
           height: 18px;
           flex-shrink: 0;
         }
-+
-+        @media (max-width: 900px) {
-+          .header-shell {
-+            padding-left: 16px;
-+            padding-right: 16px;
-+          }
-+
-+          .landing-main {
-+            padding: 72px 16px 16px;
-+          }
-+
-+          .form-card {
-+            padding: 20px;
-+            border-radius: 24px;
-+          }
-+        }
-+
-+        @media (max-width: 640px) {
-+          .grid-two {
-+            grid-template-columns: 1fr;
-+          }
-+
-+          .form-heading h2 {
-+            font-size: 24px;
-+            line-height: 30px;
-+          }
-+
-+          .btn-primary,
-+          .btn-google {
-+            border-radius: 12px;
-+          }
-+        }
+
+        @media (max-width: 900px) {
+          .header-shell {
+            padding-left: 16px;
+            padding-right: 16px;
+          }
+
+          .landing-main {
+            padding: 72px 16px 16px;
+          }
+
+          .form-card {
+            padding: 20px;
+            border-radius: 24px;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .grid-two {
+            grid-template-columns: 1fr;
+          }
+
+          .form-heading h2 {
+            font-size: 24px;
+            line-height: 30px;
+          }
+
+          .btn-primary,
+          .btn-google {
+            border-radius: 12px;
+          }
+        }
 
         .footer-shell {
           width: 100%;
@@ -1574,6 +2033,321 @@ export default function App() {
           text-transform: uppercase;
           letter-spacing: 0.14em;
           box-shadow: 0 12px 24px rgba(86, 224, 131, 0.22);
+        }
+
+        .waitlist-page {
+          min-height: 100vh;
+          color: #333333;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          padding: 88px 16px 22px;
+          background-color: #f8f9fa;
+          background-image:
+            radial-gradient(circle at 50% 50%, rgba(25, 179, 92, 0.05) 0%, transparent 70%),
+            linear-gradient(rgba(0, 0, 0, 0.02) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 0, 0, 0.02) 1px, transparent 1px);
+          background-size: 100% 100%, 60px 60px, 60px 60px;
+        }
+
+        .waitlist-topbar {
+          position: fixed;
+          left: 0;
+          right: 0;
+          top: 0;
+          z-index: 30;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 18px 28px;
+          background: rgba(248, 249, 250, 0.82);
+          backdrop-filter: blur(8px);
+          border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+        }
+
+        .waitlist-logo {
+          height: 28px;
+          width: auto;
+          object-fit: contain;
+        }
+
+        .waitlist-close {
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          background: rgba(255, 255, 255, 0.78);
+          color: rgba(51, 51, 51, 0.72);
+          width: 30px;
+          height: 30px;
+          border-radius: 999px;
+          display: grid;
+          place-items: center;
+          cursor: pointer;
+          transition: color 160ms ease, background-color 160ms ease;
+        }
+
+        .waitlist-close:hover {
+          color: #19b35c;
+          background: #ffffff;
+        }
+
+        .waitlist-shell {
+          width: 100%;
+          max-width: 820px;
+          margin: 0 auto;
+        }
+
+        .waitlist-progress {
+          margin-bottom: 24px;
+        }
+
+        .waitlist-progress-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 8px;
+          text-transform: uppercase;
+          font-family: 'Space Grotesk', sans-serif;
+          letter-spacing: 0.14em;
+          font-size: 11px;
+          color: #6f7166;
+        }
+
+        .waitlist-progress-row span:first-child {
+          color: #19b35c;
+          font-weight: 700;
+        }
+
+        .waitlist-progress-track {
+          height: 4px;
+          border-radius: 999px;
+          background: #edf1e6;
+          overflow: hidden;
+        }
+
+        .waitlist-progress-fill {
+          height: 100%;
+          width: 100%;
+          border-radius: inherit;
+          background: #19b35c;
+          box-shadow: 0 0 10px rgba(25, 179, 92, 0.4);
+        }
+
+        .waitlist-card {
+          position: relative;
+          border-radius: 16px;
+          padding: 30px;
+          background-color: rgba(255, 255, 255, 0.8);
+          backdrop-filter: blur(24px);
+          -webkit-backdrop-filter: blur(24px);
+          border: 1px solid rgba(0, 0, 0, 0.05);
+          box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+        }
+
+        .waitlist-title {
+          margin: 0 0 10px;
+          font-family: 'Manrope', 'Space Grotesk', sans-serif;
+          font-size: 32px;
+          line-height: 1.2;
+          letter-spacing: -0.03em;
+          color: #333333;
+        }
+
+        .waitlist-subtitle {
+          margin: 0;
+          max-width: 640px;
+          font-family: 'Hanken Grotesk', 'Inter', sans-serif;
+          font-size: 15px;
+          line-height: 1.6;
+          color: #5c604e;
+        }
+
+        .waitlist-form {
+          margin-top: 24px;
+          display: grid;
+          gap: 18px;
+        }
+
+        .waitlist-section {
+          display: grid;
+          gap: 8px;
+        }
+
+        .waitlist-label {
+          text-transform: uppercase;
+          font-family: 'Space Grotesk', sans-serif;
+          letter-spacing: 0.14em;
+          font-size: 11px;
+          font-weight: 700;
+          color: #4a4f3f;
+        }
+
+        .waitlist-stars {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .waitlist-star {
+          border: none;
+          background: transparent;
+          color: rgba(25, 179, 92, 0.25);
+          font-size: 24px;
+          line-height: 1;
+          padding: 0;
+          cursor: pointer;
+          transition: transform 120ms ease, color 120ms ease;
+        }
+
+        .waitlist-star.active {
+          color: #19b35c;
+        }
+
+        .waitlist-star:hover {
+          transform: translateY(-1px);
+          color: #19b35c;
+        }
+
+        .waitlist-textarea,
+        .waitlist-input {
+          width: 100%;
+          border: 1px solid #e1e4d5;
+          background: #ffffff;
+          border-radius: 10px;
+          color: #333333;
+          font-family: 'Hanken Grotesk', 'Inter', sans-serif;
+          font-size: 15px;
+          outline: none;
+          transition: border-color 160ms ease, box-shadow 160ms ease;
+        }
+
+        .waitlist-textarea {
+          min-height: 130px;
+          padding: 12px 14px;
+          resize: none;
+        }
+
+        .waitlist-input-wrap {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          border: 1px solid #e1e4d5;
+          border-radius: 10px;
+          background: #ffffff;
+          padding: 0 10px;
+          color: #5c604e;
+        }
+
+        .waitlist-input-wrap:focus-within,
+        .waitlist-textarea:focus {
+          border-color: #19b35c;
+          box-shadow: 0 0 0 2px rgba(25, 179, 92, 0.18);
+        }
+
+        .waitlist-input {
+          border: none;
+          padding: 10px 0;
+          background: transparent;
+        }
+
+        .waitlist-input::placeholder,
+        .waitlist-textarea::placeholder {
+          color: rgba(92, 96, 78, 0.5);
+        }
+
+        .waitlist-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 16px;
+        }
+
+        .waitlist-actions {
+          margin-top: 8px;
+          padding-top: 16px;
+          border-top: 1px solid rgba(0, 0, 0, 0.05);
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 14px;
+        }
+
+        .waitlist-later {
+          border: none;
+          background: transparent;
+          color: #5c604e;
+          font-family: 'Space Grotesk', sans-serif;
+          font-size: 15px;
+          font-weight: 500;
+          cursor: pointer;
+          padding: 10px 8px;
+        }
+
+        .waitlist-later:hover {
+          color: #333333;
+        }
+
+        .waitlist-submit {
+          border: 1px solid #19b35c;
+          background: #19b35c;
+          color: #ffffff;
+          border-radius: 8px;
+          padding: 11px 20px;
+          font-family: 'Space Grotesk', sans-serif;
+          font-size: 14px;
+          font-weight: 700;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          cursor: pointer;
+          transition: filter 140ms ease, box-shadow 140ms ease;
+          box-shadow: 0 0 25px rgba(25, 179, 92, 0.3);
+        }
+
+        .waitlist-submit:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
+        }
+
+        .waitlist-submit:hover {
+          filter: brightness(1.05);
+        }
+
+        .waitlist-success {
+          display: grid;
+          gap: 16px;
+        }
+
+        .waitlist-link {
+          text-decoration: none;
+          width: fit-content;
+        }
+
+        @media (max-width: 820px) {
+          .waitlist-topbar {
+            padding: 14px 16px;
+          }
+
+          .waitlist-card {
+            padding: 22px 16px;
+          }
+
+          .waitlist-title {
+            font-size: 28px;
+          }
+        }
+
+        @media (max-width: 700px) {
+          .waitlist-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .waitlist-actions {
+            flex-direction: column;
+            align-items: stretch;
+          }
+
+          .waitlist-submit {
+            width: 100%;
+          }
         }
 
         .flow-page {
@@ -1739,6 +2513,34 @@ export default function App() {
           align-items: center;
           justify-content: space-between;
           padding: 0 32px;
+        }
+
+        .demo-topbar-actions {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .demo-end-inline {
+          border: 1px solid rgba(18, 20, 16, 0.14);
+          background: rgba(255, 255, 255, 0.7);
+          color: #181c1e;
+          border-radius: 999px;
+          padding: 8px 14px;
+          font-size: 12px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 160ms ease;
+        }
+
+        .demo-end-inline:hover:not(:disabled) {
+          border-color: rgba(220, 38, 38, 0.5);
+          color: #991b1b;
+        }
+
+        .demo-end-inline:disabled {
+          opacity: 0.55;
+          cursor: not-allowed;
         }
 
         .demo-console-shell {
@@ -2180,6 +2982,18 @@ export default function App() {
           gap: 20px;
           align-content: start;
           background: transparent;
+        }
+
+        .demo-session-meta {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          padding: 10px 16px 14px;
+          font-size: 11px;
+          font-weight: 700;
+          color: rgba(24, 28, 30, 0.68);
+          border-top: 1px solid rgba(18, 20, 16, 0.08);
         }
 
         .console-message {
