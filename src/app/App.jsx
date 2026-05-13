@@ -785,7 +785,7 @@ function DemoPage({ push }) {
 
       <main className={`demo-console-shell ${welcomeOpen ? 'blurred' : ''}`}>
         <aside className="demo-console-sidebar">
-          <section className="glass-panel console-card console-card-tight">
+          <section className="console-card-premium">
             <span className="console-eyebrow">AI Module Status</span>
             <div className="console-card-head">
               <h2>Core Intelligence</h2>
@@ -806,7 +806,7 @@ function DemoPage({ push }) {
             </div>
           </section>
 
-          <section className="glass-panel console-card console-card-tight console-card-flex">
+          <section className="console-card-premium console-card-flex">
             <span className="console-eyebrow">System Status</span>
             <div className="console-status-list">
               {telemetryItems.map((item) => (
@@ -832,7 +832,7 @@ function DemoPage({ push }) {
         </aside>
 
         <section className="demo-console-center">
-          <div className="demo-hero-panel glass-panel">
+          <div className="demo-hero-panel">
             <div className="demo-hero-image-wrap">
               <img src="/images/bg.png" alt="ADAM live console visual" className="demo-hero-image" />
             </div>
@@ -852,7 +852,7 @@ function DemoPage({ push }) {
             </div>
           </div>
 
-          <div className="demo-input-card glass-panel">
+          <div className="demo-input-card">
             <input
               className="console-input"
               type="text"
@@ -862,7 +862,10 @@ function DemoPage({ push }) {
               disabled={endOpen || !demoStarted}
             />
             <button className="console-send-btn" type="button" disabled={endOpen || !demoStarted}>
-              Send
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13"/>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+              </svg>
             </button>
           </div>
 
@@ -1858,6 +1861,17 @@ export default function App() {
           min-height: 220px;
         }
 
+        .console-card-premium {
+          border-radius: 18px;
+          padding: 16px;
+          min-height: 220px;
+          background: rgba(255, 255, 255, 0.5);
+          border: 1px solid rgba(18, 20, 16, 0.06);
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+        }
+
         .console-card-flex {
           flex: 1;
           justify-content: space-between;
@@ -2023,6 +2037,11 @@ export default function App() {
           min-height: 0;
           display: flex;
           flex-direction: column;
+          background: rgba(255, 255, 255, 0.35);
+          border: 1px solid rgba(18, 20, 16, 0.06);
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
         }
 
         .demo-hero-image-wrap {
@@ -2097,10 +2116,15 @@ export default function App() {
 
         .demo-input-card {
           border-radius: 16px;
-          padding: 10px;
+          padding: 12px;
           display: grid;
           grid-template-columns: 1fr auto;
-          gap: 8px;
+          gap: 10px;
+          background: rgba(255, 255, 255, 0.35);
+          border: 1px solid rgba(18, 20, 16, 0.06);
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
         }
 
         .console-input {
@@ -2123,16 +2147,30 @@ export default function App() {
 
         .console-send-btn {
           height: 48px;
+          width: 48px;
           border: 0;
           border-radius: 12px;
           background: var(--primary);
           color: #ffffff;
-          padding: 0 20px;
-          font-family: 'Manrope', sans-serif;
-          font-size: 14px;
-          font-weight: 800;
+          padding: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
           cursor: pointer;
           box-shadow: 0 10px 28px rgba(25, 179, 92, 0.22);
+          transition: transform 160ms ease, box-shadow 160ms ease;
+          flex-shrink: 0;
+        }
+
+        .console-send-btn:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 0 12px 32px rgba(25, 179, 92, 0.32);
+        }
+
+        .console-send-btn svg {
+          width: 20px;
+          height: 20px;
+          stroke-width: 2.5;
         }
 
         .console-send-btn:disabled,
