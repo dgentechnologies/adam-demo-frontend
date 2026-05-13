@@ -1220,17 +1220,19 @@ function DemoPage({ push }) {
         </aside>
       </main>
 
-      <div className={`demo-welcome-overlay ${welcomeOpen ? 'show' : ''}`} aria-hidden={!welcomeOpen}>
-        <div className="glass-panel demo-welcome-card">
-          <span className="demo-welcome-kicker">ADAM EXCLUSIVE PREVIEW</span>
-          <h1>Welcome to the ADAM Experience</h1>
-          <p>Your private 5-minute session is ready. ADAM is online and standing by for your first command.</p>
-          <p className="demo-welcome-note">Priority early-access invitations are sent first to users who complete this guided preview.</p>
-          <button className="demo-welcome-button" type="button" onClick={beginSession}>
-            Start Live Session
-          </button>
+      {welcomeOpen ? (
+        <div className="demo-welcome-overlay show">
+          <div className="glass-panel demo-welcome-card">
+            <span className="demo-welcome-kicker">ADAM EXCLUSIVE PREVIEW</span>
+            <h1>Welcome to the ADAM Experience</h1>
+            <p>Your private 5-minute session is ready. ADAM is online and standing by for your first command.</p>
+            <p className="demo-welcome-note">Priority early-access invitations are sent first to users who complete this guided preview.</p>
+            <button className="demo-welcome-button" type="button" onClick={beginSession}>
+              Start Live Session
+            </button>
+          </div>
         </div>
-      </div>
+      ) : null}
 
       {endOpen ? (
         <div className="demo-end-banner" role="status" aria-live="polite">
