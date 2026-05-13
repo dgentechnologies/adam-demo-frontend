@@ -1,235 +1,298 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+'use client';
 
-// ============================================================================
-// MOCK API FUNCTIONS
-// ============================================================================
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
-const mockDelay = (ms = 400) => new Promise(resolve => setTimeout(resolve, ms));
+const MOCK_DELAY_MS = 400;
+let mockFetchInstalled = false;
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function createMockFetchResponse(status, payload) {
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    async json() {
+      return payload;
+    },
+  };
+}
+
+async function mockFetch(url, options = {}) {
+  await sleep(MOCK_DELAY_MS);
+
+  const method = (options.method || 'GET').toUpperCase();
+  const body = options.body ? JSON.parse(options.body) : {};
+
+  if (method === 'POST' && url === '/api/auth/login') {
+    if (body.email === 'wrong@test.com') {
+      return createMockFetchResponse(401, { error: 'Invalid credentials' });
+    }
+    return createMockFetchResponse(200, { token: 'mock-token-abc', userId: 'usr_001' });
+  }
+
+  if (method === 'POST' && url === '/api/onboarding') {
+    return createMockFetchResponse(200, { status: 'ok', profileId: 'prf_001' });
+  }
+
+  if (method === 'POST' && url === '/api/demo/start') {
+    return createMockFetchResponse(200, { sessionId: 'sess_001', durationSeconds: 300 });
+  }
+
+  if (method === 'POST' && url === '/api/demo/end') {
+    return createMockFetchResponse(200, { status: 'ended', sessionId: 'sess_001' });
+  }
+
+  if (method === 'POST' && url === '/api/waitlist') {
+    return createMockFetchResponse(200, { status: 'joined', position: 47 });
+  }
+
+  return createMockFetchResponse(404, { error: 'Not found' });
+}
+
+function installMockFetch() {
+  if (typeof globalThis === 'undefined' || mockFetchInstalled) {
+    return;
+  }
+
+  const nativeFetch = typeof globalThis.fetch === 'function' ? globalThis.fetch.bind(globalThis) : null;
+
+  globalThis.fetch = async (input, init) => {
+    const url = typeof input === 'string' ? input : input.url;
+    if (url.startsWith('/api/')) {
+      return mockFetch(url, init);
+    }
+    if (nativeFetch) {
+      return nativeFetch(input, init);
+    }
+    return createMockFetchResponse(404, { error: 'Not found' });
+  };
+
+  mockFetchInstalled = true;
+}
+
+async function postJSON(path, payload) {
+  const response = await fetch(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const data = await response.json();
+  return { ok: response.ok, status: response.status, data };
+}
 
 async function apiAuthLogin(email, password) {
-  await mockDelay();
-  if (email === 'wrong@test.com') {
-    return { error: 'Invalid credentials' };
-  }
-  return { token: 'mock-token-abc', userId: 'usr_001' };
+  return postJSON('/api/auth/login', { email, password });
 }
 
-async function apiOnboarding(userId, name, role, interest, referral) {
-  await mockDelay();
-  return { status: 'ok', profileId: 'prf_001' };
+async function apiOnboarding(payload) {
+  return postJSON('/api/onboarding', payload);
 }
 
-async function apiDemoStart(userId, startTime) {
-  await mockDelay();
-  return { sessionId: 'sess_001', durationSeconds: 300 };
+async function apiDemoStart(payload) {
+  return postJSON('/api/demo/start', payload);
 }
 
-async function apiDemoEnd(userId, endTime) {
-  await mockDelay();
-  return { status: 'ended', sessionId: 'sess_001' };
+async function apiDemoEnd(payload) {
+  return postJSON('/api/demo/end', payload);
 }
 
-async function apiWaitlist(name, email, message) {
-  await mockDelay();
-  return { status: 'joined', position: 47 };
+async function apiWaitlist(payload) {
+  return postJSON('/api/waitlist', payload);
 }
 
-// ============================================================================
-// CONTEXT FOR STATE MANAGEMENT
-// ============================================================================
-
-const AppContext = createContext();
+const AppContext = createContext(null);
 
 function AppProvider({ children }) {
-  const [authToken, setAuthToken] = useState(null);
-  const [userId, setUserId] = useState(null);
+  const [authToken, setAuthToken] = useState('');
+  const [userId, setUserId] = useState('');
+  const [email, setEmail] = useState('');
   const [onboardingData, setOnboardingData] = useState({
     name: '',
     role: '',
     interest: '',
-    referral: ''
+    referral: '',
   });
 
-  const value = {
-    authToken,
-    setAuthToken,
-    userId,
-    setUserId,
-    onboardingData,
-    setOnboardingData
-  };
+  const value = useMemo(
+    () => ({
+      authToken,
+      setAuthToken,
+      userId,
+      setUserId,
+      email,
+      setEmail,
+      onboardingData,
+      setOnboardingData,
+    }),
+    [authToken, userId, email, onboardingData]
+  );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
 
 function useAppContext() {
-  const ctx = useContext(AppContext);
-  if (!ctx) {
-    throw new Error('useAppContext must be used inside AppProvider');
+  const context = useContext(AppContext);
+  if (!context) {
+    throw new Error('useAppContext must be used within AppProvider');
   }
-  return ctx;
+  return context;
 }
 
-// ============================================================================
-// HASH ROUTER
-// ============================================================================
+function normalizeRoute(hashValue) {
+  const raw = hashValue ? hashValue.replace(/^#/, '') : '/';
+  return raw || '/';
+}
 
-function useRouter() {
-  const [route, setRoute] = useState(window.location.hash.slice(1) || '/');
+function useHashRouter() {
+  const [route, setRoute] = useState('/');
 
   useEffect(() => {
-    const handleHashChange = () => {
-      setRoute(window.location.hash.slice(1) || '/');
-    };
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
 
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
+    const updateRoute = () => setRoute(normalizeRoute(window.location.hash));
+    updateRoute();
+    window.addEventListener('hashchange', updateRoute);
+    return () => window.removeEventListener('hashchange', updateRoute);
   }, []);
 
-  const push = (path) => {
-    window.location.hash = path;
+  const push = (nextRoute) => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    window.location.hash = nextRoute;
   };
 
   return { route, push };
 }
 
-// ============================================================================
-// PAGE COMPONENTS
-// ============================================================================
-
-// --- LOGIN PAGE ---
-function LoginPage({ router }) {
-  const { setAuthToken, setUserId } = useAppContext();
-  const [email, setEmail] = useState('');
+function LoginPage({ push }) {
+  const { setAuthToken, setUserId, setEmail } = useAppContext();
+  const [emailValue, setEmailValue] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     setLoading(true);
+    setError('');
 
-    const result = await apiAuthLogin(email, password);
-
-    if (result.error) {
-      setError(result.error);
+    const result = await apiAuthLogin(emailValue, password);
+    if (!result.ok) {
+      setError(result.data.error || 'Unable to sign in');
       setLoading(false);
-    } else {
-      setAuthToken(result.token);
-      setUserId(result.userId);
-      setLoading(false);
-      router.push('/onboarding');
+      return;
     }
+
+    setAuthToken(result.data.token);
+    setUserId(result.data.userId);
+    setEmail(emailValue);
+    setLoading(false);
+    push('/onboarding');
   };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.centerBox}>
-        <div style={styles.logo}>ADAM</div>
-        <div style={styles.tagline}>
-          Autonomous Desktop AI Module · DGEN Technologies
-        </div>
+    <main className="screen-center">
+      <section className="card" style={{ maxWidth: 400 }}>
+        <h1 className="logo">ADAM</h1>
+        <p className="tagline">Autonomous Desktop AI Module · DGEN Technologies</p>
 
-        <form onSubmit={handleSubmit} style={styles.form}>
+        <form onSubmit={handleSubmit} className="stack">
           <input
+            className="field"
             type="email"
             placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            style={styles.input}
+            value={emailValue}
+            onChange={(e) => setEmailValue(e.target.value)}
             required
           />
           <input
+            className="field"
             type="password"
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            style={styles.input}
             required
           />
-
-          {error && <div style={styles.errorText}>{error}</div>}
-
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              ...styles.button,
-              opacity: loading ? 0.5 : 1,
-              cursor: loading ? 'not-allowed' : 'pointer'
-            }}
-          >
-            {loading ? 'Logging in...' : 'Enter'}
+          {error ? <p className="error-text">{error}</p> : null}
+          <button className="btn" type="submit" disabled={loading}>
+            {loading ? 'Entering...' : 'Enter'}
           </button>
         </form>
-
-        <div style={styles.helperText}>
-          Demo user: any email (use wrong@test.com for failure test)
-        </div>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }
 
-// --- ONBOARDING PAGE ---
-function OnboardingPage({ router }) {
+function OnboardingPage({ push }) {
   const { userId, onboardingData, setOnboardingData } = useAppContext();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleChange = (field, value) => {
-    setOnboardingData((prev) => ({ ...prev, [field]: value }));
+  useEffect(() => {
+    if (!userId) {
+      push('/');
+    }
+  }, [push, userId]);
+
+  const updateField = (key, value) => {
+    setOnboardingData((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!onboardingData.name || !onboardingData.role || !onboardingData.interest || !onboardingData.referral) {
-      alert('Please fill all fields');
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    const { name, role, interest, referral } = onboardingData;
+    if (!name || !role || !interest || !referral) {
+      setError('Please complete all fields.');
       return;
     }
 
+    setError('');
     setLoading(true);
-    await apiOnboarding(
-      userId,
-      onboardingData.name,
-      onboardingData.role,
-      onboardingData.interest,
-      onboardingData.referral
-    );
+    const result = await apiOnboarding({ userId, name, role, interest, referral });
     setLoading(false);
-    router.push('/demo');
+
+    if (!result.ok) {
+      setError('Unable to continue right now.');
+      return;
+    }
+
+    push('/demo');
   };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.centerBox}>
-        <div style={styles.stepIndicator}>
-          <div style={styles.activeDot}></div>
-          <div style={styles.inactiveDot}></div>
-          <div style={styles.inactiveDot}></div>
+    <main className="screen-center">
+      <section className="card" style={{ maxWidth: 480 }}>
+        <div className="step-row" aria-label="step indicator">
+          <span className="dot active" />
+          <span className="dot" />
+          <span className="dot" />
         </div>
 
-        <div style={styles.pageTitle}>Tell us about yourself</div>
-
-        <form onSubmit={handleSubmit} style={styles.form}>
-          <label style={styles.label}>Full name</label>
+        <form onSubmit={handleSubmit} className="stack">
+          <label className="label" htmlFor="full-name">Full name</label>
           <input
+            id="full-name"
+            className="field"
             type="text"
-            placeholder="John Doe"
             value={onboardingData.name}
-            onChange={(e) => handleChange('name', e.target.value)}
-            style={styles.input}
+            onChange={(e) => updateField('name', e.target.value)}
             required
           />
 
-          <label style={styles.label}>Role</label>
+          <label className="label" htmlFor="role">Role</label>
           <select
+            id="role"
+            className="field"
             value={onboardingData.role}
-            onChange={(e) => handleChange('role', e.target.value)}
-            style={styles.input}
+            onChange={(e) => updateField('role', e.target.value)}
             required
           >
-            <option value="">— Select your role —</option>
+            <option value="">Select</option>
             <option value="Developer">Developer</option>
             <option value="Researcher">Researcher</option>
             <option value="Creator">Creator</option>
@@ -237,557 +300,554 @@ function OnboardingPage({ router }) {
             <option value="Other">Other</option>
           </select>
 
-          <label style={styles.label}>Primary interest</label>
-          <div style={styles.radioGroup}>
-            {['Voice control', 'Smart home', 'Productivity', 'Just exploring'].map((opt) => (
-              <label key={opt} style={styles.radioLabel}>
+          <fieldset className="radio-group">
+            <legend className="label">Primary interest</legend>
+            {['Voice control', 'Smart home', 'Productivity', 'Just exploring'].map((option) => (
+              <label className="radio-item" key={option}>
                 <input
                   type="radio"
                   name="interest"
-                  value={opt}
-                  checked={onboardingData.interest === opt}
-                  onChange={(e) => handleChange('interest', e.target.value)}
-                  style={styles.radioInput}
+                  value={option}
+                  checked={onboardingData.interest === option}
+                  onChange={(e) => updateField('interest', e.target.value)}
                 />
-                <span>{opt}</span>
+                <span>{option}</span>
               </label>
             ))}
-          </div>
+          </fieldset>
 
-          <label style={styles.label}>How did you hear about ADAM?</label>
+          <label className="label" htmlFor="referral">How did you hear about ADAM?</label>
           <select
+            id="referral"
+            className="field"
             value={onboardingData.referral}
-            onChange={(e) => handleChange('referral', e.target.value)}
-            style={styles.input}
+            onChange={(e) => updateField('referral', e.target.value)}
             required
           >
-            <option value="">— Select —</option>
+            <option value="">Select</option>
             <option value="YouTube">YouTube</option>
             <option value="Twitter/X">Twitter/X</option>
             <option value="Friend">Friend</option>
             <option value="Other">Other</option>
           </select>
 
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              ...styles.button,
-              marginTop: '2rem',
-              opacity: loading ? 0.5 : 1,
-              cursor: loading ? 'not-allowed' : 'pointer'
-            }}
-          >
+          {error ? <p className="error-text">{error}</p> : null}
+
+          <button className="btn" type="submit" disabled={loading}>
             {loading ? 'Continuing...' : 'Continue'}
           </button>
         </form>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }
 
-// --- DEMO PAGE ---
-function DemoPage({ router }) {
+function formatRemaining(totalSeconds) {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
+function DemoPage({ push }) {
   const { userId, onboardingData } = useAppContext();
-  const [showWelcomeOverlay, setShowWelcomeOverlay] = useState(true);
-  const [timeRemaining, setTimeRemaining] = useState(300); // 5 minutes in seconds
-  const [sessionActive, setSessionActive] = useState(false);
-  const timerRef = useRef(null);
+  const [welcomeOpen, setWelcomeOpen] = useState(true);
+  const [demoStarted, setDemoStarted] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(300);
+  const [endOpen, setEndOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const intervalRef = useRef(null);
+  const didEndRef = useRef(false);
 
-  // Handle start demo button
-  const handleStartDemo = async () => {
-    setShowWelcomeOverlay(false);
-    setSessionActive(true);
-    await apiDemoStart(userId, Date.now());
-  };
-
-  // Countdown timer
   useEffect(() => {
-    if (!sessionActive) return;
+    if (!userId) {
+      push('/');
+    }
+  }, [push, userId]);
 
-    timerRef.current = setInterval(() => {
-      setTimeRemaining((prev) => {
-        if (prev <= 1) {
-          clearInterval(timerRef.current);
-          handleSessionEnd();
+  useEffect(() => {
+    if (!demoStarted || endOpen) {
+      return undefined;
+    }
+
+    intervalRef.current = setInterval(() => {
+      setTimeLeft((previous) => {
+        if (previous <= 1) {
           return 0;
         }
-        return prev - 1;
+        return previous - 1;
       });
     }, 1000);
 
-    return () => clearInterval(timerRef.current);
-  }, [sessionActive]);
+    return () => {
+      clearInterval(intervalRef.current);
+    };
+  }, [demoStarted, endOpen]);
 
-  const handleSessionEnd = async () => {
-    setSessionActive(false);
-    await apiDemoEnd(userId, Date.now());
-    // Show end overlay
-    setTimeout(() => {
-      setShowEndOverlay(true);
-    }, 500);
-  };
-
-  const [showEndOverlay, setShowEndOverlay] = useState(false);
-
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-  };
-
-  const getTimerColor = () => {
-    if (timeRemaining <= 30) return '#FF4444';
-    if (timeRemaining <= 60) return '#FFB347';
-    return '#FFFFFF';
-  };
-
-  if (showEndOverlay) {
-    return (
-      <div style={styles.container}>
-        <div
-          style={{
-            ...styles.overlay,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}
-        >
-          <div style={{ fontSize: '3rem', marginBottom: '2rem' }}>✓</div>
-          <h2 style={styles.overlayTitle}>Your demo session has ended.</h2>
-          <button
-            onClick={() => router.push('/waitlist')}
-            style={styles.button}
-          >
-            Join the waitlist →
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div style={styles.container}>
-      {showWelcomeOverlay && (
-        <div style={styles.overlay}>
-          <div style={styles.overlayCard}>
-            <h2 style={styles.overlayTitle}>Welcome, {onboardingData.name}</h2>
-            <p style={styles.overlayBody}>
-              You have 5 minutes with ADAM. Ask anything, explore freely. Your session begins when you click Start.
-            </p>
-            <button onClick={handleStartDemo} style={styles.button}>
-              Start demo
-            </button>
-          </div>
-        </div>
-      )}
-
-      {!showWelcomeOverlay && sessionActive && (
-        <>
-          <div style={styles.demoTopBar}>
-            <div style={styles.logo}>ADAM</div>
-            <div style={{ color: getTimerColor(), fontWeight: 'bold', fontSize: '1.25rem' }}>
-              {formatTime(timeRemaining)}
-            </div>
-          </div>
-
-          <div style={styles.demoContent}>
-            <div style={styles.faceBox}>[ ADAM face output ]</div>
-
-            <div style={styles.suggestedChips}>
-              {['What can you do?', 'Tell me a joke', 'Control my lights'].map((chip) => (
-                <button
-                  key={chip}
-                  style={styles.chip}
-                  onClick={() => setQuery(chip)}
-                >
-                  {chip}
-                </button>
-              ))}
-            </div>
-
-            <div style={styles.inputBar}>
-              <input
-                type="text"
-                placeholder="Type your query..."
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') setQuery('');
-                }}
-                style={styles.queryInput}
-              />
-              <button
-                onClick={() => setQuery('')}
-                style={styles.sendButton}
-              >
-                Send
-              </button>
-            </div>
-
-            <div style={styles.sessionInfo}>
-              Session: {formatTime(timeRemaining)} remaining
-            </div>
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-// --- WAITLIST PAGE ---
-function WaitlistPage() {
-  const { onboardingData } = useAppContext();
-  const [name, setName] = useState(onboardingData.name || '');
-  const [email, setEmail] = useState('');
-  const [message, setMessage] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [confirmed, setConfirmed] = useState(false);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!name || !email) {
-      alert('Please fill required fields');
+  useEffect(() => {
+    if (timeLeft > 0 || didEndRef.current) {
       return;
     }
 
-    setLoading(true);
-    await apiWaitlist(name, email, message);
-    setLoading(false);
-    setConfirmed(true);
+    didEndRef.current = true;
+    clearInterval(intervalRef.current);
+    setEndOpen(true);
+    apiDemoEnd({ userId, endTime: Date.now() });
+  }, [timeLeft, userId]);
+
+  const startDemo = async () => {
+    setWelcomeOpen(false);
+    setDemoStarted(true);
+    await apiDemoStart({ userId, startTime: Date.now() });
   };
 
-  if (confirmed) {
-    return (
-      <div style={styles.container}>
-        <div style={styles.centerBox}>
-          <div style={{ fontSize: '3rem', marginBottom: '2rem', textAlign: 'center' }}>✓</div>
-          <h2 style={styles.pageTitle}>You're on the list.</h2>
-          <p style={styles.mutedText} style={{ textAlign: 'center', marginTop: '1rem' }}>
-            We'll be in touch soon. Follow @DGENTech for updates.
-          </p>
-        </div>
-      </div>
-    );
-  }
+  const timerColor = timeLeft <= 30 ? '#ff3b30' : timeLeft <= 60 ? '#ffb347' : '#ffffff';
 
   return (
-    <div style={styles.container}>
-      <div style={styles.centerBox}>
-        <h1 style={styles.pageTitle}>Be the first to get ADAM.</h1>
-        <p style={styles.subtext}>
-          Early access opens soon. Drop your email and we'll reach out.
+    <main className="screen-full">
+      <header className="top-bar">
+        <p className="logo left">ADAM</p>
+        <p className="timer" style={{ color: timerColor }}>
+          {formatRemaining(timeLeft)}
         </p>
+      </header>
 
-        <form onSubmit={handleSubmit} style={styles.form}>
+      <section className={`demo-shell ${endOpen ? 'frozen' : ''}`}>
+        <div className="face-placeholder">[ ADAM face output ]</div>
+
+        <div className="input-row">
           <input
+            className="field"
             type="text"
-            placeholder="Full name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            style={styles.input}
-            required
+            placeholder="Type a message to ADAM"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            disabled={endOpen || !demoStarted}
           />
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            style={styles.input}
-            required
-          />
-          <textarea
-            placeholder="Anything you'd like us to know?"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            style={{ ...styles.input, minHeight: '100px', resize: 'none' }}
-          />
-
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              ...styles.button,
-              opacity: loading ? 0.5 : 1,
-              cursor: loading ? 'not-allowed' : 'pointer'
-            }}
-          >
-            {loading ? 'Joining...' : 'Join waitlist'}
+          <button className="btn" type="button" disabled={endOpen || !demoStarted}>
+            Send
           </button>
-        </form>
+        </div>
+
+        <div className="chip-row">
+          {['What can you do?', 'Tell me a joke', 'Control my lights'].map((chip) => (
+            <button
+              key={chip}
+              className="chip"
+              type="button"
+              disabled={endOpen || !demoStarted}
+              onClick={() => setQuery(chip)}
+            >
+              {chip}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <div className={`overlay ${welcomeOpen ? 'show' : ''}`} aria-hidden={!welcomeOpen}>
+        <div className="overlay-card">
+          <h2>Welcome, {onboardingData.name || 'there'}</h2>
+          <p>
+            You have 5 minutes with ADAM. Ask anything, explore freely. Your session begins when you click Start.
+          </p>
+          <button className="btn" type="button" onClick={startDemo}>
+            Start demo
+          </button>
+        </div>
       </div>
-    </div>
+
+      <div className={`overlay ${endOpen ? 'show' : ''}`} aria-hidden={!endOpen}>
+        <div className="overlay-card">
+          <h2>Your demo session has ended.</h2>
+          <button className="btn" type="button" onClick={() => push('/waitlist')}>
+            Join the waitlist -&gt;
+          </button>
+        </div>
+      </div>
+    </main>
   );
 }
 
-// ============================================================================
-// STYLES
-// ============================================================================
+function WaitlistPage() {
+  const { onboardingData, email } = useAppContext();
+  const [name, setName] = useState(onboardingData.name || '');
+  const [emailValue, setEmailValue] = useState(email || '');
+  const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [joined, setJoined] = useState(false);
+  const [error, setError] = useState('');
 
-const styles = {
-  container: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: '100vh',
-    backgroundColor: '#000000',
-    color: '#FFFFFF',
-    fontFamily: "'Courier New', Courier, monospace",
-    padding: '2rem'
-  },
-  centerBox: {
-    width: '100%',
-    maxWidth: '440px'
-  },
-  logo: {
-    fontSize: '2rem',
-    fontWeight: 'bold',
-    letterSpacing: '0.3em',
-    textAlign: 'center',
-    marginBottom: '0.5rem'
-  },
-  tagline: {
-    fontSize: '0.75rem',
-    color: 'rgba(255,255,255,0.45)',
-    textAlign: 'center',
-    marginBottom: '2rem'
-  },
-  pageTitle: {
-    fontSize: '1.5rem',
-    marginBottom: '1rem',
-    fontWeight: 'bold'
-  },
-  subtext: {
-    fontSize: '0.9rem',
-    color: 'rgba(255,255,255,0.45)',
-    marginBottom: '2rem'
-  },
-  mutedText: {
-    color: 'rgba(255,255,255,0.45)',
-    fontSize: '0.9rem'
-  },
-  form: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '1rem'
-  },
-  label: {
-    fontSize: '0.85rem',
-    color: 'rgba(255,255,255,0.7)',
-    marginBottom: '0.25rem',
-    display: 'block'
-  },
-  input: {
-    backgroundColor: 'transparent',
-    border: '1px solid rgba(255,255,255,0.2)',
-    color: '#FFFFFF',
-    padding: '0.75rem',
-    borderRadius: '4px',
-    fontFamily: "'Courier New', Courier, monospace",
-    fontSize: '0.9rem',
-    outline: 'none',
-    transition: 'border-color 200ms ease',
-    boxSizing: 'border-box'
-  },
-  inputFocus: {
-    borderColor: 'rgba(255,255,255,0.6)'
-  },
-  button: {
-    backgroundColor: 'transparent',
-    border: '1px solid rgba(255,255,255,0.5)',
-    color: '#FFFFFF',
-    padding: '0.75rem 1rem',
-    borderRadius: '4px',
-    fontFamily: "'Courier New', Courier, monospace",
-    fontSize: '0.9rem',
-    cursor: 'pointer',
-    transition: 'background-color 200ms ease',
-    fontWeight: 'bold'
-  },
-  buttonHover: {
-    backgroundColor: 'rgba(255,255,255,0.08)'
-  },
-  errorText: {
-    color: '#FF4444',
-    fontSize: '0.85rem',
-    marginTop: '-0.5rem'
-  },
-  helperText: {
-    fontSize: '0.7rem',
-    color: 'rgba(255,255,255,0.3)',
-    textAlign: 'center',
-    marginTop: '2rem'
-  },
-  stepIndicator: {
-    display: 'flex',
-    gap: '0.5rem',
-    justifyContent: 'center',
-    marginBottom: '2rem'
-  },
-  activeDot: {
-    width: '8px',
-    height: '8px',
-    borderRadius: '50%',
-    backgroundColor: '#FFFFFF'
-  },
-  inactiveDot: {
-    width: '8px',
-    height: '8px',
-    borderRadius: '50%',
-    backgroundColor: 'rgba(255,255,255,0.2)'
-  },
-  radioGroup: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '0.75rem'
-  },
-  radioLabel: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.5rem',
-    fontSize: '0.9rem',
-    cursor: 'pointer'
-  },
-  radioInput: {
-    cursor: 'pointer',
-    width: '16px',
-    height: '16px'
-  },
-  overlay: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.85)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1000,
-    backdropFilter: 'blur(4px)'
-  },
-  overlayCard: {
-    backgroundColor: 'rgba(0,0,0,0.95)',
-    border: '1px solid rgba(255,255,255,0.1)',
-    borderRadius: '8px',
-    padding: '3rem 2rem',
-    maxWidth: '440px',
-    textAlign: 'center'
-  },
-  overlayTitle: {
-    fontSize: '1.5rem',
-    marginBottom: '1.5rem',
-    fontWeight: 'bold'
-  },
-  overlayBody: {
-    color: 'rgba(255,255,255,0.7)',
-    marginBottom: '2rem',
-    lineHeight: '1.6',
-    fontSize: '0.95rem'
-  },
-  demoTopBar: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '1.5rem 2rem',
-    borderBottom: '1px solid rgba(255,255,255,0.1)',
-    backgroundColor: 'rgba(0,0,0,0.95)',
-    zIndex: 100,
-    fontSize: '1rem'
-  },
-  demoContent: {
-    marginTop: '6rem',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    padding: '2rem'
-  },
-  faceBox: {
-    width: '100%',
-    maxWidth: '640px',
-    aspectRatio: '16 / 9',
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    border: '1px solid rgba(255,255,255,0.15)',
-    borderRadius: '8px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    color: 'rgba(255,255,255,0.45)',
-    marginBottom: '2rem',
-    fontSize: '1rem'
-  },
-  suggestedChips: {
-    display: 'flex',
-    gap: '0.75rem',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    marginBottom: '2rem'
-  },
-  chip: {
-    backgroundColor: 'transparent',
-    border: '1px solid rgba(255,255,255,0.3)',
-    color: '#FFFFFF',
-    padding: '0.5rem 1rem',
-    borderRadius: '4px',
-    fontFamily: "'Courier New', Courier, monospace",
-    fontSize: '0.8rem',
-    cursor: 'pointer',
-    transition: 'all 200ms ease'
-  },
-  inputBar: {
-    width: '100%',
-    maxWidth: '640px',
-    display: 'flex',
-    gap: '0.5rem',
-    marginBottom: '2rem'
-  },
-  queryInput: {
-    flex: 1,
-    backgroundColor: 'transparent',
-    border: '1px solid rgba(255,255,255,0.2)',
-    color: '#FFFFFF',
-    padding: '0.75rem',
-    borderRadius: '4px',
-    fontFamily: "'Courier New', Courier, monospace",
-    fontSize: '0.9rem',
-    outline: 'none'
-  },
-  sendButton: {
-    backgroundColor: 'transparent',
-    border: '1px solid rgba(255,255,255,0.5)',
-    color: '#FFFFFF',
-    padding: '0.75rem 1.5rem',
-    borderRadius: '4px',
-    fontFamily: "'Courier New', Courier, monospace",
-    fontSize: '0.9rem',
-    cursor: 'pointer',
-    fontWeight: 'bold'
-  },
-  sessionInfo: {
-    color: 'rgba(255,255,255,0.45)',
-    fontSize: '0.85rem'
-  }
-};
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setError('');
+    setLoading(true);
 
-// ============================================================================
-// MAIN APP COMPONENT
-// ============================================================================
+    const result = await apiWaitlist({ name, email: emailValue, message });
+    setLoading(false);
 
-export default function App() {
-  const { route, push } = useRouter();
+    if (!result.ok) {
+      setError('Unable to join right now.');
+      return;
+    }
+
+    setJoined(true);
+  };
 
   return (
-    <AppProvider>
-      {route === '/' && <LoginPage router={{ push }} />}
-      {route === '/onboarding' && <OnboardingPage router={{ push }} />}
-      {route === '/demo' && <DemoPage router={{ push }} />}
-      {route === '/waitlist' && <WaitlistPage />}
-    </AppProvider>
+    <main className="screen-center">
+      <section className="card" style={{ maxWidth: 440 }}>
+        {!joined ? (
+          <>
+            <h2 className="title">Be the first to get ADAM.</h2>
+            <p className="muted">Early access opens soon. Drop your email and we&apos;ll reach out.</p>
+
+            <form onSubmit={handleSubmit} className="stack">
+              <input
+                className="field"
+                type="text"
+                placeholder="Full name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
+              <input
+                className="field"
+                type="email"
+                placeholder="Email"
+                value={emailValue}
+                onChange={(e) => setEmailValue(e.target.value)}
+                required
+              />
+              <textarea
+                className="field"
+                rows={4}
+                placeholder="Anything you'd like us to know?"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+              />
+              {error ? <p className="error-text">{error}</p> : null}
+              <button className="btn" type="submit" disabled={loading}>
+                {loading ? 'Joining...' : 'Join waitlist'}
+              </button>
+            </form>
+          </>
+        ) : (
+          <div className="joined-state">
+            <div className="checkmark" aria-hidden="true">✓</div>
+            <h2 className="title">You&apos;re on the list.</h2>
+            <p className="muted">We&apos;ll be in touch soon. Follow @DGENTech for updates.</p>
+          </div>
+        )}
+      </section>
+    </main>
+  );
+}
+
+function RouterView() {
+  const { route, push } = useHashRouter();
+  const { authToken, userId } = useAppContext();
+
+  if (!authToken && route !== '/') {
+    return <LoginPage push={push} />;
+  }
+
+  if (route === '/onboarding') {
+    return <OnboardingPage push={push} />;
+  }
+
+  if (route === '/demo') {
+    if (!userId) {
+      return <LoginPage push={push} />;
+    }
+    return <DemoPage push={push} />;
+  }
+
+  if (route === '/waitlist') {
+    return <WaitlistPage />;
+  }
+
+  return <LoginPage push={push} />;
+}
+
+export default function App() {
+  useEffect(() => {
+    installMockFetch();
+  }, []);
+
+  return (
+    <>
+      <style>{`
+        * { box-sizing: border-box; }
+        html, body {
+          margin: 0;
+          padding: 0;
+          background: #000000;
+          color: #ffffff;
+          font-family: 'Courier New', Courier, monospace;
+        }
+        main {
+          min-height: 100vh;
+          width: 100%;
+          background: #000000;
+        }
+        .screen-center {
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 24px;
+        }
+        .screen-full {
+          min-height: 100vh;
+          padding-top: 78px;
+        }
+        .card {
+          width: 100%;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          border-radius: 8px;
+          padding: 24px;
+        }
+        .logo {
+          margin: 0;
+          font-size: 32px;
+          letter-spacing: 0.3em;
+          color: #ffffff;
+          text-align: center;
+        }
+        .logo.left {
+          text-align: left;
+          font-size: 24px;
+        }
+        .tagline {
+          margin: 12px 0 22px;
+          color: rgba(255, 255, 255, 0.45);
+          font-size: 12px;
+          text-align: center;
+        }
+        .title {
+          margin: 0 0 10px;
+          font-size: 26px;
+        }
+        .muted {
+          margin: 0 0 18px;
+          color: rgba(255, 255, 255, 0.45);
+        }
+        .stack {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+        .label {
+          color: #ffffff;
+          font-size: 13px;
+        }
+        .field {
+          width: 100%;
+          background: transparent;
+          color: #ffffff;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          border-radius: 4px;
+          padding: 10px 12px;
+          font-family: 'Courier New', Courier, monospace;
+          outline: none;
+        }
+        .field:focus {
+          border-color: rgba(255, 255, 255, 0.6);
+        }
+        .field:disabled {
+          opacity: 0.55;
+          cursor: not-allowed;
+        }
+        .btn {
+          background: transparent;
+          color: #ffffff;
+          border: 1px solid rgba(255, 255, 255, 0.5);
+          border-radius: 4px;
+          padding: 10px 12px;
+          font-family: 'Courier New', Courier, monospace;
+          cursor: pointer;
+        }
+        .btn:hover:not(:disabled) {
+          background: rgba(255, 255, 255, 0.08);
+        }
+        .btn:disabled {
+          opacity: 0.55;
+          cursor: not-allowed;
+        }
+        .error-text {
+          margin: 0;
+          color: #ffffff;
+          font-size: 12px;
+        }
+        .step-row {
+          display: flex;
+          justify-content: center;
+          gap: 8px;
+          margin-bottom: 20px;
+        }
+        .dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 100px;
+          background: rgba(255, 255, 255, 0.25);
+        }
+        .dot.active {
+          background: #ffffff;
+        }
+        .radio-group {
+          border: 0;
+          padding: 0;
+          margin: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        .radio-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          color: #ffffff;
+          font-size: 14px;
+        }
+        .top-bar {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 78px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+          background: #000000;
+          padding: 0 18px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          z-index: 2;
+        }
+        .timer {
+          margin: 0;
+          font-size: 20px;
+        }
+        .demo-shell {
+          max-width: 900px;
+          margin: 0 auto;
+          padding: 20px;
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+          align-items: center;
+        }
+        .demo-shell.frozen {
+          pointer-events: none;
+          opacity: 0.45;
+        }
+        .face-placeholder {
+          width: 100%;
+          max-width: 640px;
+          aspect-ratio: 16 / 9;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          border-radius: 8px;
+          background: rgba(255, 255, 255, 0.08);
+          color: rgba(255, 255, 255, 0.45);
+          display: grid;
+          place-items: center;
+          text-align: center;
+          padding: 16px;
+        }
+        .input-row {
+          width: 100%;
+          max-width: 640px;
+          display: grid;
+          grid-template-columns: 1fr auto;
+          gap: 8px;
+        }
+        .chip-row {
+          width: 100%;
+          max-width: 640px;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+        .chip {
+          background: transparent;
+          border: 1px solid rgba(255, 255, 255, 0.5);
+          border-radius: 4px;
+          color: #ffffff;
+          padding: 8px 10px;
+          font-family: 'Courier New', Courier, monospace;
+          cursor: pointer;
+        }
+        .chip:hover:not(:disabled) {
+          background: rgba(255, 255, 255, 0.08);
+        }
+        .chip:disabled {
+          opacity: 0.55;
+          cursor: not-allowed;
+        }
+        .overlay {
+          position: fixed;
+          inset: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: rgba(0, 0, 0, 0.84);
+          backdrop-filter: blur(4px);
+          opacity: 0;
+          pointer-events: none;
+          transition: opacity 200ms ease;
+          z-index: 4;
+        }
+        .overlay.show {
+          opacity: 1;
+          pointer-events: auto;
+        }
+        .overlay-card {
+          width: calc(100% - 32px);
+          max-width: 520px;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          border-radius: 8px;
+          background: #000000;
+          padding: 24px;
+        }
+        .overlay-card h2 {
+          margin: 0 0 10px;
+          font-size: 28px;
+        }
+        .overlay-card p {
+          margin: 0 0 16px;
+          color: rgba(255, 255, 255, 0.45);
+          line-height: 1.5;
+        }
+        .joined-state {
+          text-align: center;
+          padding: 12px 4px;
+        }
+        .checkmark {
+          font-size: 52px;
+          margin-bottom: 10px;
+        }
+        @media (max-width: 700px) {
+          .top-bar {
+            height: 70px;
+          }
+          .screen-full {
+            padding-top: 70px;
+          }
+          .logo.left {
+            font-size: 20px;
+          }
+          .timer {
+            font-size: 18px;
+          }
+          .input-row {
+            grid-template-columns: 1fr;
+          }
+          .btn {
+            width: 100%;
+          }
+        }
+      `}</style>
+      <AppProvider>
+        <RouterView />
+      </AppProvider>
+    </>
   );
 }
