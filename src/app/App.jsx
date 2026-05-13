@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { MessageCircle } from 'lucide-react';
 import { createUserWithEmailAndPassword, onAuthStateChanged, signInWithPopup, updateProfile } from 'firebase/auth';
 import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { getClientAuth, getClientDb, googleProvider, isFirebaseConfigured } from '@/lib/firebase';
@@ -775,10 +776,7 @@ function DemoPage({ push }) {
 
       <header className="demo-console-topbar">
         <div className="header-brand">
-          <span className="brand-mark" aria-hidden="true">
-            <span className="brand-mark-cut" />
-          </span>
-          <span className="brand-text">ADAM | Live Dashboard</span>
+          <img src="/images/logo.png" alt="Dgen Technologies" className="demo-brand-logo" />
         </div>
         <p className="demo-timer mono-timer" style={{ color: timerColor }}>{formatRemaining(timeLeft)}</p>
       </header>
@@ -788,7 +786,7 @@ function DemoPage({ push }) {
           <section className="console-chat-premium">
             <div className="console-chat-head">
               <div className="header-brand chat-brand">
-                <span className="chat-icon material-symbols-outlined">chat_bubble</span>
+                <MessageCircle className="chat-icon" size={20} strokeWidth={2.2} aria-hidden="true" />
                 <div>
                   <h3>Live Conversation</h3>
                   <p>Real-time transcript</p>
@@ -993,6 +991,7 @@ export default function App() {
         :root {
           --green-main: #56e083;
           --green-strong: #19b35c;
+          --primary: #19b35c;
           --text-charcoal: #131313;
           --surface: #ffffff;
           --surface-container: #f5f5f5;
@@ -1071,6 +1070,13 @@ export default function App() {
           height: 38px;
           width: auto;
           display: block;
+        }
+
+        .demo-brand-logo {
+          height: 34px;
+          width: auto;
+          display: block;
+          object-fit: contain;
         }
 
         .header-brand {
@@ -1877,8 +1883,9 @@ export default function App() {
           flex-shrink: 0;
         }
 
-        .console-status-icon .material-symbols-outlined {
-          font-size: 20px;
+        .console-status-icon svg {
+          width: 20px;
+          height: 20px;
         }
 
         .console-status-label {
@@ -2308,7 +2315,7 @@ export default function App() {
           border: 0;
           border-radius: 14px;
           padding: 16px 20px;
-          background: var(--primary);
+          background: var(--green-strong);
           color: #ffffff;
           font-family: 'Manrope', sans-serif;
           font-size: 13px;
