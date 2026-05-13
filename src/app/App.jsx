@@ -751,6 +751,7 @@ function DemoPage({ push }) {
   const transcriptRef = useRef(null);
   const intervalRef = useRef(null);
   const didEndRef = useRef(false);
+  const sessionStateRef = useRef('idle');
   const micStreamRef = useRef(null);
   const micAudioCtxRef = useRef(null);
   const micSourceRef = useRef(null);
@@ -791,6 +792,10 @@ function DemoPage({ push }) {
     nextSpeakerStartRef.current = 0;
     setAdamSpeaking(false);
   };
+
+  useEffect(() => {
+    sessionStateRef.current = sessionState;
+  }, [sessionState]);
 
   const stopRealtimeResources = () => {
     cleanupMicCapture();
@@ -986,7 +991,7 @@ function DemoPage({ push }) {
 
   useEffect(() => {
     const onBeforeUnload = () => {
-      if (!didEndRef.current && sessionState === 'active') {
+      if (!didEndRef.current && sessionStateRef.current === 'active') {
         sendWsMessage({ type: 'disconnect' });
         closeSession('user_disconnect', true);
       }
@@ -995,12 +1000,12 @@ function DemoPage({ push }) {
     window.addEventListener('beforeunload', onBeforeUnload);
     return () => {
       window.removeEventListener('beforeunload', onBeforeUnload);
-      if (!didEndRef.current && (sessionState === 'active' || sessionState === 'connecting')) {
+      if (!didEndRef.current && sessionStateRef.current === 'active') {
         sendWsMessage({ type: 'disconnect' });
         closeSession('user_disconnect', true);
       }
     };
-  }, [sessionState, authToken, sessionId, userId]);
+  }, []);
 
   const beginSession = async () => {
     setWelcomeOpen(false);
@@ -1120,9 +1125,18 @@ function DemoPage({ push }) {
       };
 
       ws.onclose = () => {
-        if (!didEndRef.current && sessionState !== 'error') {
-          closeSession('connection_closed', true);
+        if (didEndRef.current || sessionStateRef.current === 'ended') {
+          return;
         }
+
+        if (sessionStateRef.current === 'active') {
+          closeSession('connection_closed', true);
+          return;
+        }
+
+        setErrorMsg('Relay connection closed before the demo could start.');
+        setSessionState('error');
+        setWelcomeOpen(true);
       };
     } catch (_error) {
       setErrorMsg('Unable to start live session. Please retry.');
