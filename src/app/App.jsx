@@ -1739,8 +1739,8 @@ export default function App() {
         }
 
         .demo-console-shell.blurred {
-          filter: blur(14px);
-          transform: scale(1.01);
+          filter: none;
+          transform: none;
         }
 
         .demo-console-sidebar,
@@ -2096,6 +2096,10 @@ export default function App() {
         }
 
         .demo-console-chat {
+          grid-column: 3;
+          justify-self: end;
+          width: 100%;
+          max-width: 400px;
           min-height: 0;
         }
 
@@ -2239,7 +2243,7 @@ export default function App() {
           justify-content: center;
           padding: 16px;
           background: rgba(0, 0, 0, 0.2);
-          backdrop-filter: blur(16px);
+          backdrop-filter: none;
           opacity: 0;
           pointer-events: none;
           transition: opacity 180ms ease;
@@ -2313,6 +2317,12 @@ export default function App() {
             height: auto;
             min-height: 100vh;
             overflow: auto;
+          }
+
+          .demo-console-chat {
+            grid-column: auto;
+            justify-self: stretch;
+            max-width: none;
           }
 
           .demo-console-sidebar,
