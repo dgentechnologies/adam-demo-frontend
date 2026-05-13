@@ -1683,7 +1683,7 @@ export default function App() {
         .demo-console-overlay {
           position: fixed;
           inset: 0;
-          background: rgba(215, 218, 221, 0.36);
+          background: transparent;
           pointer-events: none;
           z-index: 0;
         }
@@ -1691,7 +1691,7 @@ export default function App() {
         .demo-console-bg {
           position: fixed;
           inset: 0;
-          background: linear-gradient(180deg, rgba(215, 218, 221, 0.18), rgba(215, 218, 221, 0.45));
+          background: transparent;
           pointer-events: none;
           z-index: 0;
         }
@@ -1739,8 +1739,8 @@ export default function App() {
         }
 
         .demo-console-shell.blurred {
-          filter: none;
-          transform: none;
+          filter: blur(14px);
+          transform: scale(1.01);
         }
 
         .demo-console-sidebar,
@@ -2243,7 +2243,7 @@ export default function App() {
           justify-content: center;
           padding: 16px;
           background: rgba(0, 0, 0, 0.2);
-          backdrop-filter: none;
+          backdrop-filter: blur(16px);
           opacity: 0;
           pointer-events: none;
           transition: opacity 180ms ease;
