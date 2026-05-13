@@ -732,6 +732,7 @@ function base64ToFloat32(base64) {
 function DemoPage({ push }) {
   const { userId, authToken, onboardingData } = useAppContext();
   const RELAY_URL = process.env.NEXT_PUBLIC_RELAY_URL || '';
+  const WAITLIST_URL = process.env.NEXT_PUBLIC_WAITLIST_URL || 'https://dgentechnologies.com/products/adam';
   const [welcomeOpen, setWelcomeOpen] = useState(true);
   const [sessionState, setSessionState] = useState('idle');
   const [timeLeft, setTimeLeft] = useState(300);
@@ -752,6 +753,8 @@ function DemoPage({ push }) {
   const intervalRef = useRef(null);
   const didEndRef = useRef(false);
   const sessionStateRef = useRef('idle');
+  const micPermissionRef = useRef('requesting');
+  const adamSpeakingRef = useRef(false);
   const micStreamRef = useRef(null);
   const micAudioCtxRef = useRef(null);
   const micSourceRef = useRef(null);
@@ -796,6 +799,14 @@ function DemoPage({ push }) {
   useEffect(() => {
     sessionStateRef.current = sessionState;
   }, [sessionState]);
+
+  useEffect(() => {
+    micPermissionRef.current = micPermission;
+  }, [micPermission]);
+
+  useEffect(() => {
+    adamSpeakingRef.current = adamSpeaking;
+  }, [adamSpeaking]);
 
   const stopRealtimeResources = () => {
     cleanupMicCapture();
@@ -892,6 +903,10 @@ function DemoPage({ push }) {
         // backend errors should not block UI end-state
       }
     }
+
+    if (['timeout', 'user_disconnect', 'cap_reached', 'server_restart', 'connection_closed'].includes(reason)) {
+      window.top?.location?.assign(WAITLIST_URL);
+    }
   };
 
   const endConversation = async () => {
@@ -910,13 +925,20 @@ function DemoPage({ push }) {
       micStreamRef.current = stream;
       const audioCtx = new AudioContext({ sampleRate: 16000 });
       micAudioCtxRef.current = audioCtx;
+      if (audioCtx.state === 'suspended') {
+        await audioCtx.resume();
+      }
       const source = audioCtx.createMediaStreamSource(stream);
       micSourceRef.current = source;
       const processor = audioCtx.createScriptProcessor(4096, 1, 1);
       micProcessorRef.current = processor;
 
       processor.onaudioprocess = (event) => {
-        if (sessionState !== 'active' || adamSpeaking || micPermission !== 'granted') {
+        if (
+          sessionStateRef.current !== 'active' ||
+          adamSpeakingRef.current ||
+          micPermissionRef.current !== 'granted'
+        ) {
           return;
         }
 
@@ -1076,14 +1098,45 @@ function DemoPage({ push }) {
 
         if (incoming.type === 'transcript') {
           const isAdam = incoming.role === 'adam';
-          const entry = {
-            speaker: isAdam ? 'ADAM' : 'YOU',
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            text: incoming.text || '',
-            tone: isAdam ? 'adam' : 'user',
-          };
-          setTranscript((prev) => [...prev, entry]);
-          if (!isAdam) {
+          const textChunk = incoming.text || '';
+
+          if (isAdam) {
+            setTranscript((prev) => {
+              const last = prev[prev.length - 1];
+              if (last && last.speaker === 'ADAM' && last.inProgress) {
+                return [
+                  ...prev.slice(0, -1),
+                  {
+                    ...last,
+                    text: `${last.text}${textChunk}`,
+                    inProgress: true,
+                    typing: true,
+                  },
+                ];
+              }
+
+              return [
+                ...prev,
+                {
+                  speaker: 'ADAM',
+                  time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                  text: textChunk,
+                  tone: 'adam',
+                  inProgress: true,
+                  typing: true,
+                },
+              ];
+            });
+          } else {
+            setTranscript((prev) => [
+              ...prev,
+              {
+                speaker: 'YOU',
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                text: textChunk,
+                tone: 'user',
+              },
+            ]);
             setTurnCount((prev) => prev + 1);
           }
           return;
@@ -1100,6 +1153,21 @@ function DemoPage({ push }) {
 
         if (incoming.type === 'turn_complete') {
           setAdamSpeaking(false);
+          setTranscript((prev) => {
+            const last = prev[prev.length - 1];
+            if (!last || last.speaker !== 'ADAM' || !last.inProgress) {
+              return prev;
+            }
+
+            return [
+              ...prev.slice(0, -1),
+              {
+                ...last,
+                inProgress: false,
+                typing: false,
+              },
+            ];
+          });
           if (sessionState === 'active' && micPermission === 'granted') {
             setIsRecording(true);
           }
@@ -1206,9 +1274,9 @@ function DemoPage({ push }) {
                     <span className={`console-message-speaker ${message.tone}`}>{message.speaker}</span>
                     <span>{message.time}</span>
                   </div>
-                  <div className={`console-message-bubble ${message.tone}`}>
+                  <div className={`console-message-bubble ${message.tone} ${message.typing ? 'typing' : ''}`}>
                     {message.text}
-                    {message.tone === 'adam-active' ? (
+                    {message.typing ? (
                       <div className="console-thinking-dots" aria-hidden="true">
                         <span />
                         <span />
@@ -1248,15 +1316,7 @@ function DemoPage({ push }) {
         </div>
       ) : null}
 
-      {endOpen ? (
-        <div className="demo-end-banner" role="status" aria-live="polite">
-          <div>
-            <h2>Your demo session has ended.</h2>
-            <p>Join the waitlist to get early access.</p>
-          </div>
-          <button className="btn-dark" type="button" onClick={() => push('/waitlist')}>Join the waitlist -&gt;</button>
-        </div>
-      ) : null}
+      {endOpen ? null : null}
     </main>
   );
 }
@@ -3062,6 +3122,21 @@ export default function App() {
           border-top-right-radius: 4px;
         }
 
+        .console-message-bubble.adam.typing {
+          position: relative;
+        }
+
+        .console-message-bubble.adam.typing::after {
+          content: '';
+          display: inline-block;
+          width: 6px;
+          height: 1em;
+          margin-left: 3px;
+          border-right: 2px solid rgba(25, 179, 92, 0.95);
+          vertical-align: -0.15em;
+          animation: typingBlink 0.9s steps(1) infinite;
+        }
+
         .console-thinking-dots {
           display: flex;
           gap: 4px;
@@ -3078,6 +3153,11 @@ export default function App() {
 
         .console-thinking-dots span:nth-child(2) { animation-delay: 0.1s; }
         .console-thinking-dots span:nth-child(3) { animation-delay: 0.2s; }
+
+        @keyframes typingBlink {
+          0%, 49% { opacity: 1; }
+          50%, 100% { opacity: 0; }
+        }
 
         .demo-welcome-overlay {
           position: fixed;
