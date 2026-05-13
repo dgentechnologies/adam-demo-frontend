@@ -113,6 +113,8 @@ function AppProvider({ children }) {
     role: '',
     interest: '',
     referral: '',
+    profession: '',
+    dob: '',
   });
 
   const value = useMemo(
@@ -388,16 +390,22 @@ function OnboardingPage({ push }) {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    const { name, role, interest, referral } = onboardingData;
+    const { name, referral, profession, dob } = onboardingData;
 
-    if (!name || !role || !interest || !referral) {
+    if (!referral || !profession || !dob) {
       setError('Please complete all onboarding fields.');
       return;
     }
 
     setLoading(true);
     setError('');
-    const result = await apiOnboarding({ userId, name, role, interest, referral });
+    const result = await apiOnboarding({
+      userId,
+      name,
+      source: referral,
+      profession,
+      dob,
+    });
     setLoading(false);
 
     if (!result.ok) {
@@ -409,85 +417,78 @@ function OnboardingPage({ push }) {
   };
 
   return (
-    <main className="flow-page">
-      <section className="flow-card">
-        <div className="step-row" aria-label="step indicator">
-          <span className="dot active" />
-          <span className="dot" />
-          <span className="dot" />
+    <main className="onboarding-page">
+      <div className="onboarding-mesh" aria-hidden="true" />
+
+      <section className="onboarding-shell">
+        <div className="onboarding-progress">
+          <div className="onboarding-progress-row">
+            <span>Onboarding Progress</span>
+            <strong>33% Complete</strong>
+          </div>
+          <div className="onboarding-progress-bar">
+            <div className="onboarding-progress-fill" />
+          </div>
         </div>
 
-        <h2 className="flow-title">Welcome to ADAM onboarding</h2>
+        <header className="onboarding-header">
+          <h2>Welcome to ADAM</h2>
+          <p>Tell us a little about yourself to initialize your profile.</p>
+        </header>
 
-        <form className="stack-lg" onSubmit={handleSubmit}>
+        <form className="onboarding-form" onSubmit={handleSubmit}>
           <div className="stack-sm">
-            <label htmlFor="onb-name">Full name</label>
+            <label htmlFor="onb-referral">How did you hear about ADAM?</label>
+            <select
+              id="onb-referral"
+              className="input-light onboarding-input"
+              value={onboardingData.referral}
+              onChange={(e) => updateField('referral', e.target.value)}
+              required
+            >
+              <option value="">Select an option</option>
+              <option value="Social Media">Social Media</option>
+              <option value="Professional Referral">Professional Referral</option>
+              <option value="Search Engine">Search Engine</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          <div className="stack-sm">
+            <label htmlFor="onb-profession">Profession</label>
             <input
-              id="onb-name"
-              className="input-dark"
+              id="onb-profession"
+              className="input-light onboarding-input"
               type="text"
-              value={onboardingData.name}
-              onChange={(e) => updateField('name', e.target.value)}
+              placeholder="e.g. Software Engineer"
+              value={onboardingData.profession}
+              onChange={(e) => updateField('profession', e.target.value)}
               required
             />
           </div>
 
           <div className="stack-sm">
-            <label htmlFor="onb-role">Role</label>
-            <select
-              id="onb-role"
-              className="input-dark"
-              value={onboardingData.role}
-              onChange={(e) => updateField('role', e.target.value)}
+            <label htmlFor="onb-dob">Date of Birth</label>
+            <input
+              id="onb-dob"
+              className="input-light onboarding-input"
+              type="date"
+              value={onboardingData.dob}
+              onChange={(e) => updateField('dob', e.target.value)}
               required
-            >
-              <option value="">Select</option>
-              <option value="Developer">Developer</option>
-              <option value="Researcher">Researcher</option>
-              <option value="Creator">Creator</option>
-              <option value="Business">Business</option>
-              <option value="Other">Other</option>
-            </select>
+            />
           </div>
 
-          <fieldset className="radio-group-dark">
-            <legend>Primary interest</legend>
-            {['Voice control', 'Smart home', 'Productivity', 'Just exploring'].map((option) => (
-              <label key={option}>
-                <input
-                  type="radio"
-                  name="interest"
-                  value={option}
-                  checked={onboardingData.interest === option}
-                  onChange={(e) => updateField('interest', e.target.value)}
-                />
-                <span>{option}</span>
-              </label>
-            ))}
-          </fieldset>
+          {error ? <p className="error-text dark">{error}</p> : null}
 
-          <div className="stack-sm">
-            <label htmlFor="onb-referral">How did you hear about ADAM?</label>
-            <select
-              id="onb-referral"
-              className="input-dark"
-              value={onboardingData.referral}
-              onChange={(e) => updateField('referral', e.target.value)}
-              required
-            >
-              <option value="">Select</option>
-              <option value="YouTube">YouTube</option>
-              <option value="Twitter/X">Twitter/X</option>
-              <option value="Friend">Friend</option>
-              <option value="Other">Other</option>
-            </select>
+          <div className="onboarding-actions">
+            <button className="onboarding-back" type="button" onClick={() => push('/')}>
+              Back
+            </button>
+            <button className="btn-primary onboarding-next" type="submit" disabled={loading}>
+              {loading ? 'Loading...' : 'Next'}
+            </button>
           </div>
-
-          {error ? <p className="error-text">{error}</p> : null}
-
-          <button className="btn-dark" type="submit" disabled={loading}>
-            {loading ? 'Continuing...' : 'Continue'}
-          </button>
         </form>
       </section>
     </main>
@@ -1131,6 +1132,143 @@ export default function App() {
           flex-wrap: wrap;
         }
 
+        .onboarding-page {
+          min-height: 100vh;
+          display: grid;
+          place-items: center;
+          padding: 24px 16px;
+          background: #ffffff;
+          color: var(--text-charcoal);
+          position: relative;
+          overflow: hidden;
+        }
+
+        .onboarding-mesh {
+          position: absolute;
+          inset: 0;
+          background: radial-gradient(circle at 50% 40%, #f9f9f9 0%, #f9f9f9 42%, rgba(204, 255, 0, 0.15) 72%, rgba(19, 19, 19, 0.05) 100%);
+          background-size: 200% 200%;
+          animation: gradientAnimation 15s ease infinite;
+          pointer-events: none;
+        }
+
+        .onboarding-shell {
+          width: 100%;
+          max-width: 540px;
+          position: relative;
+          z-index: 1;
+          padding: 8px 0;
+        }
+
+        .onboarding-progress {
+          margin-bottom: 36px;
+        }
+
+        .onboarding-progress-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 10px;
+          gap: 12px;
+          font-family: 'Space Grotesk', sans-serif;
+          font-size: 11px;
+          font-weight: 600;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: rgba(19, 19, 19, 0.55);
+        }
+
+        .onboarding-progress-row strong {
+          color: var(--green-strong);
+          font-weight: 700;
+        }
+
+        .onboarding-progress-bar {
+          width: 100%;
+          height: 4px;
+          border-radius: 999px;
+          background: #ececec;
+          overflow: hidden;
+        }
+
+        .onboarding-progress-fill {
+          width: 33%;
+          height: 100%;
+          border-radius: 999px;
+          background: var(--green-main);
+          box-shadow: 0 0 8px rgba(86, 224, 131, 0.35);
+        }
+
+        .onboarding-header {
+          margin-bottom: 28px;
+        }
+
+        .onboarding-header h2 {
+          margin: 0 0 8px;
+          font-family: 'Space Grotesk', sans-serif;
+          font-size: 22px;
+          line-height: 30px;
+          font-weight: 600;
+          letter-spacing: -0.01em;
+        }
+
+        .onboarding-header p {
+          margin: 0;
+          font-size: 14px;
+          line-height: 22px;
+          color: rgba(19, 19, 19, 0.58);
+        }
+
+        .onboarding-form {
+          display: grid;
+          gap: 24px;
+        }
+
+        .onboarding-input {
+          min-height: 52px;
+          border-radius: 10px;
+          background: #f4f4f4;
+          border-color: transparent;
+          padding: 14px 16px;
+          font-size: 14px;
+          box-shadow: none;
+        }
+
+        .onboarding-input:focus {
+          border-color: var(--green-main);
+          box-shadow: 0 0 0 2px rgba(86, 224, 131, 0.2);
+          background: #ffffff;
+        }
+
+        .onboarding-actions {
+          padding-top: 18px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+        }
+
+        .onboarding-back {
+          border: 0;
+          background: transparent;
+          color: rgba(19, 19, 19, 0.38);
+          font-family: 'Space Grotesk', sans-serif;
+          font-size: 13px;
+          font-weight: 500;
+          letter-spacing: 0.03em;
+          cursor: pointer;
+          padding: 8px 0;
+        }
+
+        .onboarding-next {
+          width: auto;
+          min-width: 132px;
+          padding: 12px 24px;
+          text-transform: uppercase;
+          letter-spacing: 0.14em;
+          box-shadow: 0 12px 24px rgba(86, 224, 131, 0.22);
+        }
+
         .flow-page {
           min-height: 100vh;
           background: var(--dark-bg);
@@ -1427,6 +1565,26 @@ export default function App() {
 
           .input-row {
             grid-template-columns: 1fr;
+          }
+
+          .onboarding-page {
+            padding: 20px 16px;
+          }
+
+          .onboarding-progress {
+            margin-bottom: 28px;
+          }
+
+          .onboarding-header {
+            margin-bottom: 22px;
+          }
+
+          .onboarding-form {
+            gap: 18px;
+          }
+
+          .onboarding-actions {
+            padding-top: 8px;
           }
         }
       `}</style>
