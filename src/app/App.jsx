@@ -1684,7 +1684,6 @@ export default function App() {
           position: fixed;
           inset: 0;
           background: rgba(215, 218, 221, 0.36);
-          backdrop-filter: blur(1px);
           pointer-events: none;
           z-index: 0;
         }
