@@ -1869,7 +1869,7 @@ export default function App() {
           z-index: 1;
           overflow: hidden;
           background-image: url('/images/login-image2.png');
-          background-size: contain;
+          background-size: 100% auto;
           background-position: center center;
           background-repeat: no-repeat;
         }
@@ -1881,8 +1881,8 @@ export default function App() {
         .login-hero-overlay {
           position: absolute;
           inset: 0;
-          background: linear-gradient(180deg, rgba(15, 18, 20, 0.18), rgba(15, 18, 20, 0.28));
-          backdrop-filter: blur(1px);
+          background: transparent;
+          backdrop-filter: none;
           pointer-events: none;
         }
 
