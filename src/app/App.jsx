@@ -1792,9 +1792,8 @@ export default function App() {
         }
 
         .header-shell {
-          position: fixed;
+          position: sticky;
           top: 0;
-          left: 0;
           width: 100%;
           display: flex;
           justify-content: space-between;
@@ -1875,7 +1874,7 @@ export default function App() {
         }
 
         .login-hero-shell {
-          min-height: 100%;
+          min-height: 0;
         }
 
         .login-hero-overlay {
