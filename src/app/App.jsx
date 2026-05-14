@@ -1552,7 +1552,7 @@ function WaitlistPage({ push }) {
       return;
     }
 
-    setJoined(true);
+    window.location.href = 'https://dgentechnologies.com/products/adam';
   };
 
   return (
