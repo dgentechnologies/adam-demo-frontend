@@ -671,18 +671,18 @@ function OnboardingPage({ push }) {
                   onChange={(e) => updateField('referral', e.target.value)}
                   required
                 >
-                  <option value="">Select a source…</option>
+                  <option value="">Select a source</option>
                   <option value="Instagram">Instagram</option>
                   <option value="LinkedIn">LinkedIn</option>
                   <option value="YouTube">YouTube</option>
-                  <option value="Twitter / X">Twitter / X</option>
+                  <option value="Twitter / X">X (formerly Twitter)</option>
                   <option value="Facebook">Facebook</option>
                   <option value="Google Search">Google Search</option>
-                  <option value="A Friend / Colleague">A Friend / Colleague</option>
+                  <option value="A Friend / Colleague">Friend or Colleague</option>
                   <option value="Tech Blog or Article">Tech Blog or Article</option>
                   <option value="Product Hunt">Product Hunt</option>
-                  <option value="Hackathon / Event">Hackathon / Event</option>
-                  <option value="College / University">College / University</option>
+                  <option value="Hackathon / Event">Hackathon or Event</option>
+                  <option value="College / University">College or University</option>
                   <option value="Other">Other</option>
                 </select>
                 <span className="onb-chevron" aria-hidden="true">
@@ -706,21 +706,21 @@ function OnboardingPage({ push }) {
                   onChange={(e) => updateField('profession', e.target.value)}
                   required
                 >
-                  <option value="">Select your profession…</option>
-                  <option value="Software Engineer / Developer">Software Engineer / Developer</option>
+                  <option value="">Select your profession</option>
+                  <option value="Software Engineer / Developer">Software Engineer or Developer</option>
                   <option value="Product Manager">Product Manager</option>
-                  <option value="Data Scientist / ML Engineer">Data Scientist / ML Engineer</option>
+                  <option value="Data Scientist / ML Engineer">Data Scientist or ML Engineer</option>
                   <option value="Student">Student</option>
-                  <option value="Entrepreneur / Founder">Entrepreneur / Founder</option>
-                  <option value="Designer (UI/UX / Graphic)">Designer (UI/UX / Graphic)</option>
-                  <option value="Marketing / Sales Professional">Marketing / Sales Professional</option>
-                  <option value="Researcher / Academic">Researcher / Academic</option>
+                  <option value="Entrepreneur / Founder">Entrepreneur or Founder</option>
+                  <option value="Designer (UI/UX / Graphic)">Designer (UI, UX, or Graphic)</option>
+                  <option value="Marketing / Sales Professional">Marketing or Sales Professional</option>
+                  <option value="Researcher / Academic">Researcher or Academic</option>
                   <option value="Business Analyst">Business Analyst</option>
-                  <option value="Hardware / Embedded Engineer">Hardware / Embedded Engineer</option>
-                  <option value="Finance / Banking Professional">Finance / Banking Professional</option>
+                  <option value="Hardware / Embedded Engineer">Hardware or Embedded Engineer</option>
+                  <option value="Finance / Banking Professional">Finance or Banking Professional</option>
                   <option value="Healthcare Professional">Healthcare Professional</option>
                   <option value="Content Creator">Content Creator</option>
-                  <option value="Operations / Logistics">Operations / Logistics</option>
+                  <option value="Operations / Logistics">Operations or Logistics</option>
                   <option value="Other">Other</option>
                 </select>
                 <span className="onb-chevron" aria-hidden="true">
@@ -766,19 +766,19 @@ function OnboardingPage({ push }) {
                     onChange={(e) => updateField('countryCode', e.target.value)}
                     aria-label="Country code"
                   >
-                    <option value="+91">🇮🇳 +91</option>
-                    <option value="+1">🇺🇸 +1</option>
-                    <option value="+44">🇬🇧 +44</option>
-                    <option value="+61">🇦🇺 +61</option>
-                    <option value="+65">🇸🇬 +65</option>
-                    <option value="+971">🇦🇪 +971</option>
-                    <option value="+49">🇩🇪 +49</option>
-                    <option value="+33">🇫🇷 +33</option>
-                    <option value="+81">🇯🇵 +81</option>
-                    <option value="+86">🇨🇳 +86</option>
-                    <option value="+55">🇧🇷 +55</option>
-                    <option value="+52">🇲🇽 +52</option>
-                    <option value="+7">🇷🇺 +7</option>
+                    <option value="+91">India (+91)</option>
+                    <option value="+1">United States (+1)</option>
+                    <option value="+44">United Kingdom (+44)</option>
+                    <option value="+61">Australia (+61)</option>
+                    <option value="+65">Singapore (+65)</option>
+                    <option value="+971">UAE (+971)</option>
+                    <option value="+49">Germany (+49)</option>
+                    <option value="+33">France (+33)</option>
+                    <option value="+81">Japan (+81)</option>
+                    <option value="+86">China (+86)</option>
+                    <option value="+55">Brazil (+55)</option>
+                    <option value="+52">Mexico (+52)</option>
+                    <option value="+7">Russia (+7)</option>
                   </select>
                   <span className="onb-chevron" aria-hidden="true">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
@@ -810,17 +810,17 @@ function OnboardingPage({ push }) {
                   value={onboardingData.intent}
                   onChange={(e) => updateField('intent', e.target.value)}
                 >
-                  <option value="">Select your primary use…</option>
+                  <option value="">Select your primary use</option>
                   <option value="Personal Assistant">Personal Assistant</option>
                   <option value="Research & Learning">Research &amp; Learning</option>
-                  <option value="Business / Work Automation">Business / Work Automation</option>
+                  <option value="Business / Work Automation">Business or Workflow Automation</option>
                   <option value="Customer Support Demo">Customer Support Demo</option>
-                  <option value="Development / Testing">Development / Testing</option>
-                  <option value="Entertainment / Fun">Entertainment / Fun</option>
+                  <option value="Development / Testing">Development or Testing</option>
+                  <option value="Entertainment / Fun">Entertainment or Personal Use</option>
                   <option value="Home Automation Research">Home Automation Research</option>
                   <option value="Academic Project">Academic Project</option>
-                  <option value="Investor / Press Demo">Investor / Press Demo</option>
-                  <option value="Just exploring">Just exploring</option>
+                  <option value="Investor / Press Demo">Investor or Press Demo</option>
+                  <option value="Just exploring">Exploring ADAM</option>
                 </select>
                 <span className="onb-chevron" aria-hidden="true">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
@@ -2375,24 +2375,120 @@ export default function App() {
 
         .onboarding-select {
           cursor: pointer;
-          padding-right: 38px;
+          padding-right: 44px;
+          background:
+            linear-gradient(180deg, #ffffff 0%, #f6f8f6 100%);
+          border-color: #d8ded8;
+          box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.9),
+            0 1px 2px rgba(10, 26, 14, 0.06);
+          text-shadow: 0 1px 0 rgba(255,255,255,0.55);
+        }
+
+        .onboarding-select:required:invalid {
+          color: rgba(19, 19, 19, 0.44);
+          font-weight: 500;
+        }
+
+        .onboarding-select:hover {
+          border-color: rgba(58, 165, 97, 0.58);
+          background: linear-gradient(180deg, #ffffff 0%, #f4f8f4 100%);
+          box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.92),
+            0 4px 10px rgba(20, 54, 30, 0.08);
+        }
+
+        .onboarding-select:focus,
+        .onboarding-select:focus-visible {
+          border-color: var(--green-main);
+          background: #ffffff;
+          box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.95),
+            0 0 0 3px rgba(86, 224, 131, 0.18),
+            0 8px 16px rgba(22, 58, 33, 0.12);
+        }
+
+        .onboarding-select option {
+          color: #121212;
+          background: #ffffff;
+          font-family: 'Space Grotesk', sans-serif;
+          font-size: 14px;
+          font-weight: 500;
+          line-height: 1.35;
+          letter-spacing: 0.01em;
+          padding: 10px 12px;
+        }
+
+        .onboarding-select option[value=""] {
+          color: rgba(19, 19, 19, 0.45);
+          font-weight: 500;
+        }
+
+        .onboarding-select option:checked {
+          background: linear-gradient(180deg, rgba(86, 224, 131, 0.22) 0%, rgba(86, 224, 131, 0.1) 100%);
+          color: #0f2516;
+          font-weight: 700;
         }
 
         .onb-select-wrap {
           position: relative;
           display: flex;
           align-items: center;
+          border-radius: 10px;
+          isolation: isolate;
+        }
+
+        .onb-select-wrap::after {
+          content: '';
+          position: absolute;
+          right: 34px;
+          top: 11px;
+          bottom: 11px;
+          width: 1px;
+          background: linear-gradient(180deg, rgba(19,19,19,0.08), rgba(19,19,19,0.16), rgba(19,19,19,0.08));
+          pointer-events: none;
+          transition: opacity 160ms ease;
+        }
+
+        .onb-select-wrap:hover::after {
+          opacity: 0.95;
+        }
+
+        .onb-select-wrap:focus-within::after {
+          background: linear-gradient(180deg, rgba(56, 184, 101, 0.2), rgba(56, 184, 101, 0.52), rgba(56, 184, 101, 0.2));
         }
 
         .onb-chevron {
           position: absolute;
-          right: 13px;
+          right: 10px;
           top: 50%;
           transform: translateY(-50%);
+          width: 24px;
+          height: 24px;
+          border-radius: 999px;
           display: flex;
           align-items: center;
-          color: rgba(19,19,19,0.35);
+          justify-content: center;
+          color: rgba(19,19,19,0.58);
+          background: linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(241,245,241,0.95) 100%);
+          box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.95),
+            0 1px 2px rgba(0,0,0,0.08);
           pointer-events: none;
+          transition: transform 160ms ease, color 160ms ease, box-shadow 160ms ease;
+        }
+
+        .onb-select-wrap:hover .onb-chevron {
+          color: rgba(19,19,19,0.72);
+        }
+
+        .onb-select-wrap:focus-within .onb-chevron {
+          transform: translateY(-50%) rotate(180deg);
+          color: var(--green-strong);
+          box-shadow:
+            inset 0 1px 0 rgba(255,255,255,1),
+            0 0 0 2px rgba(86, 224, 131, 0.18),
+            0 4px 10px rgba(20, 54, 30, 0.14);
         }
 
         .onb-select-wrap .onboarding-input {
@@ -2414,6 +2510,7 @@ export default function App() {
         .onb-country-select {
           padding-left: 12px;
           font-size: 13px;
+          font-variant-numeric: tabular-nums;
         }
 
         .onb-phone-input {
@@ -2512,6 +2609,17 @@ export default function App() {
           }
           .onb-country-wrap {
             width: 96px;
+          }
+          .onboarding-select {
+            padding-right: 40px;
+          }
+          .onb-select-wrap::after {
+            right: 31px;
+          }
+          .onb-chevron {
+            right: 8px;
+            width: 22px;
+            height: 22px;
           }
         }
 
