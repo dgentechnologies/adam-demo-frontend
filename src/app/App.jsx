@@ -1792,8 +1792,9 @@ export default function App() {
         }
 
         .header-shell {
-          position: sticky;
+          position: fixed;
           top: 0;
+          left: 0;
           width: 100%;
           display: flex;
           justify-content: space-between;
@@ -1868,13 +1869,13 @@ export default function App() {
           z-index: 1;
           overflow: hidden;
           background-image: url('/images/login-image2.png');
-          background-size: cover;
+          background-size: contain;
           background-position: center center;
           background-repeat: no-repeat;
         }
 
         .login-hero-shell {
-          min-height: 0;
+          min-height: 100%;
         }
 
         .login-hero-overlay {
