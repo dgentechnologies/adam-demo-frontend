@@ -747,6 +747,7 @@ function DemoPage({ push }) {
   const [micPermission, setMicPermission] = useState('requesting');
   const [adamSpeaking, setAdamSpeaking] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [connectingStatus, setConnectingStatus] = useState('');
 
   const wsRef = useRef(null);
   const transcriptRef = useRef(null);
@@ -905,7 +906,7 @@ function DemoPage({ push }) {
     }
 
     if (['timeout', 'user_disconnect', 'cap_reached', 'server_restart', 'connection_closed'].includes(reason)) {
-      window.top?.location?.assign(WAITLIST_URL);
+      push('/waitlist');
     }
   };
 
@@ -1032,7 +1033,13 @@ function DemoPage({ push }) {
   const beginSession = async () => {
     setWelcomeOpen(false);
     setSessionState('connecting');
+    setConnectingStatus('Requesting microphone access…');
     setErrorMsg('');
+
+    // Fire mic permission dialog immediately — runs in parallel with API calls
+    if (!micStreamRef.current) {
+      setupMicCapture();
+    }
 
     if (!RELAY_URL) {
       setErrorMsg('Relay URL is not configured.');
@@ -1041,6 +1048,7 @@ function DemoPage({ push }) {
     }
 
     try {
+      setConnectingStatus('Initializing session…');
       const startResp = await apiDemoStart({ userId, idToken: authToken, startTime: Date.now() });
       if (!startResp.ok) {
         setErrorMsg(startResp.data?.error || 'Unable to start session.');
@@ -1051,6 +1059,7 @@ function DemoPage({ push }) {
       const nextSessionId = startResp.data?.sessionId || '';
       setSessionId(nextSessionId);
 
+      setConnectingStatus('Authenticating relay…');
       const tokenResp = await fetch('/api/relay-token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1064,6 +1073,7 @@ function DemoPage({ push }) {
         return;
       }
 
+      setConnectingStatus('Connecting to ADAM…');
       const ws = new WebSocket(RELAY_URL);
       wsRef.current = ws;
 
@@ -1316,7 +1326,14 @@ function DemoPage({ push }) {
         </div>
       ) : null}
 
-      {endOpen ? null : null}
+      {sessionState === 'connecting' ? (
+        <div className="demo-connecting-overlay">
+          <div className="demo-connecting-card">
+            <div className="demo-connecting-spinner" aria-hidden="true" />
+            <p className="demo-connecting-status">{connectingStatus}</p>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }
@@ -3157,6 +3174,50 @@ export default function App() {
         @keyframes typingBlink {
           0%, 49% { opacity: 1; }
           50%, 100% { opacity: 0; }
+        }
+
+        .demo-connecting-overlay {
+          position: fixed;
+          inset: 0;
+          z-index: 110;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: rgba(0, 0, 0, 0.55);
+          backdrop-filter: blur(18px);
+        }
+
+        .demo-connecting-card {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 20px;
+          padding: 40px 48px;
+          border-radius: 20px;
+          background: rgba(18, 20, 26, 0.82);
+          border: 1px solid rgba(86, 224, 131, 0.18);
+          box-shadow: 0 24px 60px rgba(0,0,0,0.4);
+        }
+
+        .demo-connecting-spinner {
+          width: 44px;
+          height: 44px;
+          border-radius: 50%;
+          border: 3px solid rgba(86, 224, 131, 0.18);
+          border-top-color: #56e083;
+          animation: spin 0.75s linear infinite;
+        }
+
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+
+        .demo-connecting-status {
+          font-size: 14px;
+          font-weight: 500;
+          color: rgba(255,255,255,0.75);
+          letter-spacing: 0.01em;
+          text-align: center;
         }
 
         .demo-welcome-overlay {
