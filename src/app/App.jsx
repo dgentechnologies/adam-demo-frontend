@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ArrowRight, Mail, MessageCircle, User, X } from 'lucide-react';
 import { createUserWithEmailAndPassword, onAuthStateChanged, signInWithPopup, updateProfile } from 'firebase/auth';
 import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
@@ -643,6 +644,8 @@ const INTENT_OPTIONS = [
 function CustomSelect({ id, value, onChange, options, placeholder, required, ariaLabel }) {
   const [open, setOpen] = useState(false);
   const [focusedIdx, setFocusedIdx] = useState(-1);
+  const [menuStyle, setMenuStyle] = useState(null);
+  const [openUpward, setOpenUpward] = useState(false);
   const wrapRef = useRef(null);
   const listRef = useRef(null);
   const btnRef = useRef(null);
@@ -652,7 +655,9 @@ function CustomSelect({ id, value, onChange, options, placeholder, required, ari
   useEffect(() => {
     if (!open) return undefined;
     const handler = (e) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target)) {
+      const clickedTrigger = wrapRef.current?.contains(e.target);
+      const clickedList = listRef.current?.contains(e.target);
+      if (!clickedTrigger && !clickedList) {
         setOpen(false);
         setFocusedIdx(-1);
       }
@@ -660,6 +665,54 @@ function CustomSelect({ id, value, onChange, options, placeholder, required, ari
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [open]);
+
+  useEffect(() => {
+    if (!open) {
+      setMenuStyle(null);
+      setOpenUpward(false);
+      return undefined;
+    }
+
+    const updateMenuPosition = () => {
+      const triggerRect = btnRef.current?.getBoundingClientRect();
+      if (!triggerRect) {
+        return;
+      }
+
+      const viewportHeight = window.innerHeight;
+      const viewportWidth = window.innerWidth;
+      const viewportPadding = 12;
+      const triggerGap = 6;
+      const estimatedHeight = Math.min(260, Math.max(160, options.length * 44 + 12));
+      const spaceBelow = viewportHeight - triggerRect.bottom - viewportPadding;
+      const spaceAbove = triggerRect.top - viewportPadding;
+      const shouldOpenUpward = spaceBelow < Math.min(estimatedHeight, 180) && spaceAbove > spaceBelow;
+      const availableHeight = shouldOpenUpward ? spaceAbove - triggerGap : spaceBelow - triggerGap;
+      const nextMaxHeight = Math.max(120, Math.min(260, availableHeight));
+      const nextLeft = Math.min(
+        Math.max(viewportPadding, triggerRect.left),
+        Math.max(viewportPadding, viewportWidth - triggerRect.width - viewportPadding),
+      );
+
+      setOpenUpward(shouldOpenUpward);
+      setMenuStyle({
+        left: nextLeft,
+        width: triggerRect.width,
+        maxHeight: nextMaxHeight,
+        top: shouldOpenUpward ? 'auto' : triggerRect.bottom + triggerGap,
+        bottom: shouldOpenUpward ? viewportHeight - triggerRect.top + triggerGap : 'auto',
+      });
+    };
+
+    updateMenuPosition();
+    window.addEventListener('resize', updateMenuPosition);
+    window.addEventListener('scroll', updateMenuPosition, true);
+
+    return () => {
+      window.removeEventListener('resize', updateMenuPosition);
+      window.removeEventListener('scroll', updateMenuPosition, true);
+    };
+  }, [open, options.length]);
 
   useEffect(() => {
     if (!open || focusedIdx < 0) return;
@@ -728,31 +781,37 @@ function CustomSelect({ id, value, onChange, options, placeholder, required, ari
           </svg>
         </span>
       </button>
-      {open && (
-        <ul
-          id={`${id}-list`}
-          ref={listRef}
-          role="listbox"
-          aria-label={ariaLabel || placeholder}
-          className="csel-list"
-        >
-          {options.map((opt, idx) => (
-            <li
-              key={opt.value}
-              role="option"
-              aria-selected={value === opt.value}
-              className={`csel-item${value === opt.value ? ' selected' : ''}${focusedIdx === idx ? ' focused' : ''}`}
-              onMouseDown={(e) => { e.preventDefault(); handleSelect(opt.value); }}
-              onMouseEnter={() => setFocusedIdx(idx)}
-            >
-              {value === opt.value && (
-                <span className="csel-check" aria-hidden="true">✓</span>
-              )}
-              {opt.label}
-            </li>
-          ))}
-        </ul>
-      )}
+
+      {open && menuStyle
+        ? createPortal(
+          <ul
+            id={`${id}-list`}
+            ref={listRef}
+            role="listbox"
+            aria-label={ariaLabel || placeholder}
+            className={`csel-list${openUpward ? ' open-upward' : ''}`}
+            style={menuStyle}
+          >
+            {options.map((opt, idx) => (
+              <li
+                key={opt.value}
+                id={`${id}-option-${idx}`}
+                role="option"
+                aria-selected={value === opt.value}
+                className={`csel-item${value === opt.value ? ' selected' : ''}${focusedIdx === idx ? ' focused' : ''}`}
+                onMouseDown={(e) => { e.preventDefault(); handleSelect(opt.value); }}
+                onMouseEnter={() => setFocusedIdx(idx)}
+              >
+                {value === opt.value && (
+                  <span className="csel-check" aria-hidden="true">✓</span>
+                )}
+                {opt.label}
+              </li>
+            ))}
+          </ul>,
+          document.body,
+        )
+        : null}
     </div>
   );
 }
@@ -1945,7 +2004,10 @@ export default function App() {
         }
 
         .site-root {
+          min-height: 100vh;
+          min-height: 100dvh;
           height: 100vh;
+          height: 100dvh;
           overflow: hidden;
           display: flex;
           flex-direction: column;
@@ -2044,17 +2106,20 @@ export default function App() {
           justify-content: flex-end;
           align-items: center;
           padding: 80px 72px 24px;
+          min-height: 100vh;
+          min-height: 100dvh;
           position: relative;
           z-index: 1;
           overflow: hidden;
           background-image: url('/images/login-image2.png');
-          background-size: 100% auto;
+          background-size: cover;
           background-position: center center;
           background-repeat: no-repeat;
         }
 
         .login-hero-shell {
-          min-height: 100%;
+          min-height: 100vh;
+          min-height: 100dvh;
         }
 
         .login-hero-overlay {
@@ -4363,11 +4428,8 @@ export default function App() {
         }
 
         .csel-list {
-          position: absolute;
-          top: calc(100% + 6px);
-          left: 0;
-          right: 0;
-          z-index: 200;
+          position: fixed;
+          z-index: 999;
           background: #111111;
           border: 1px solid rgba(86,224,131,0.2);
           border-radius: 12px;
@@ -4386,6 +4448,10 @@ export default function App() {
           scrollbar-color: rgba(86,224,131,0.2) transparent;
         }
 
+        .csel-list.open-upward {
+          animation-name: cselOpenUp;
+        }
+
         .csel-list::-webkit-scrollbar { width: 4px; }
         .csel-list::-webkit-scrollbar-track { background: transparent; }
         .csel-list::-webkit-scrollbar-thumb {
@@ -4395,6 +4461,11 @@ export default function App() {
 
         @keyframes cselOpen {
           from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        @keyframes cselOpenUp {
+          from { opacity: 0; transform: translateY(6px) scale(0.98); }
           to   { opacity: 1; transform: translateY(0) scale(1); }
         }
 
