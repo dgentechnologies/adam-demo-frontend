@@ -732,7 +732,6 @@ function base64ToFloat32(base64) {
 function DemoPage({ push }) {
   const { userId, authToken, onboardingData } = useAppContext();
   const RELAY_URL = process.env.NEXT_PUBLIC_RELAY_URL || '';
-  const WAITLIST_URL = process.env.NEXT_PUBLIC_WAITLIST_URL || 'https://dgentechnologies.com/products/adam';
   const [welcomeOpen, setWelcomeOpen] = useState(true);
   const [sessionState, setSessionState] = useState('idle');
   const [timeLeft, setTimeLeft] = useState(300);
@@ -754,6 +753,7 @@ function DemoPage({ push }) {
   const intervalRef = useRef(null);
   const didEndRef = useRef(false);
   const sessionStateRef = useRef('idle');
+  const timeLeftRef = useRef(300);
   const micPermissionRef = useRef('requesting');
   const adamSpeakingRef = useRef(false);
   const micStreamRef = useRef(null);
@@ -800,6 +800,10 @@ function DemoPage({ push }) {
   useEffect(() => {
     sessionStateRef.current = sessionState;
   }, [sessionState]);
+
+  useEffect(() => {
+    timeLeftRef.current = timeLeft;
+  }, [timeLeft]);
 
   useEffect(() => {
     micPermissionRef.current = micPermission;
@@ -1190,9 +1194,22 @@ function DemoPage({ push }) {
         }
 
         if (incoming.type === 'error') {
-          setErrorMsg(`${incoming.code || 'relay_error'}: ${incoming.message || 'Unknown relay error'}`);
-          if (incoming.code === 'auth_failed' || incoming.code === 'cap_exceeded') {
-            closeSession(incoming.code, false);
+          const code = incoming.code || 'relay_error';
+          const message = incoming.message || 'Unknown relay error';
+          const isLateAuthRace =
+            code === 'auth_failed' &&
+            String(message).toLowerCase().includes('not authenticated') &&
+            (didEndRef.current || sessionStateRef.current !== 'active' || timeLeftRef.current <= 1);
+
+          // Ignore the relay's transient auth race while the session is already ending.
+          if (isLateAuthRace) {
+            closeSession('timeout', false);
+            return;
+          }
+
+          setErrorMsg(`${code}: ${message}`);
+          if (code === 'auth_failed' || code === 'cap_exceeded') {
+            closeSession(code, false);
           }
         }
       };
@@ -1208,7 +1225,11 @@ function DemoPage({ push }) {
         }
 
         if (sessionStateRef.current === 'active') {
-          closeSession('connection_closed', true);
+          if (timeLeftRef.current <= 1) {
+            closeSession('timeout', false);
+          } else {
+            closeSession('connection_closed', true);
+          }
           return;
         }
 
