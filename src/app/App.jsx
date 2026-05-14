@@ -304,11 +304,8 @@ function useHashRouter() {
 function HeaderBar() {
   return (
     <header className="header-shell">
-      <div className="header-shell-inner">
-        <div className="header-brand">
-          <img src="/images/logo.png" alt="Dgen Technologies" className="brand-logo" />
-        </div>
-        <span className="header-meta-chip" aria-label="Experience mode">ADAM Preview</span>
+      <div className="header-brand">
+        <img src="/images/logo.png" alt="Dgen Technologies" className="brand-logo" />
       </div>
     </header>
   );
@@ -451,161 +448,146 @@ function LoginPage({ push }) {
 
       <section className="landing-main login-hero-shell">
         <div className="login-hero-overlay" aria-hidden="true" />
-        <div className="login-grid">
-          <aside className="login-showcase" aria-label="ADAM experience summary">
-            <span className="login-kicker">Autonomous Desktop AI Module</span>
-            <h1 className="login-title">Experience ADAM in a private live session</h1>
-            <p className="login-copy">
-              High-fidelity voice interaction, real-time intelligence, and a guided product preview in under five minutes.
-            </p>
-            <ul className="login-points">
-              <li className="login-point">Investor-grade product walkthrough</li>
-              <li className="login-point">Priority access queue after completion</li>
-              <li className="login-point">Secure onboarding with personalized setup</li>
-            </ul>
-          </aside>
+        <div className="form-card">
+          <div className="form-heading">
+            <h2>Create an Account</h2>
+            <p>Start your journey with Dgen today.</p>
+          </div>
 
-          <div className="form-card">
-            <div className="form-heading">
-              <h2>Create Your ADAM Account</h2>
-              <p>Sign in to start the demo flow and unlock your guided session.</p>
-            </div>
+          <div className="form-scroll-body">
+            <form className="stack-lg" onSubmit={handleSubmit}>
+              <button type="button" className="btn-google" onClick={handleGoogleSignIn} disabled={loading}>
+                <svg className="google-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                </svg>
+                <span>Continue with Google</span>
+              </button>
 
-            <div className="form-scroll-body">
-              <form className="stack-lg" onSubmit={handleSubmit}>
-                <button type="button" className="btn-google" onClick={handleGoogleSignIn} disabled={loading}>
-                  <svg className="google-icon" viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
-                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                  </svg>
-                  <span>Continue with Google</span>
-                </button>
+              <div className="or-divider">
+                <span>or continue with</span>
+              </div>
 
-                <div className="or-divider">
-                  <span>or continue with email</span>
-                </div>
-
-                <div className="grid-two">
-                  <div className="stack-sm">
-                    <label htmlFor="first-name">FIRST NAME</label>
-                    <input
-                      id="first-name"
-                      className="input-light"
-                      type="text"
-                      value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="stack-sm">
-                    <label htmlFor="last-name">LAST NAME</label>
-                    <input
-                      id="last-name"
-                      className="input-light"
-                      type="text"
-                      value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
-
+              <div className="grid-two">
                 <div className="stack-sm">
-                  <label htmlFor="email">EMAIL ADDRESS</label>
+                  <label htmlFor="first-name">FIRST NAME</label>
                   <input
-                    id="email"
+                    id="first-name"
                     className="input-light"
-                    type="email"
-                    value={emailValue}
-                    onChange={(e) => setEmailValue(e.target.value)}
+                    type="text"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
                     required
                   />
                 </div>
-
                 <div className="stack-sm">
-                  <label htmlFor="password">PASSWORD</label>
-                  <div className="input-password-wrap">
-                    <input
-                      id="password"
-                      className="input-light"
-                      type={showPassword ? 'text' : 'password'}
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                    />
-                    <button
-                      type="button"
-                      className="password-toggle"
-                      onClick={() => setShowPassword((v) => !v)}
-                      aria-label={showPassword ? 'Hide password' : 'Show password'}
-                    >
-                      {showPassword ? (
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
-                          <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
-                          <line x1="1" y1="1" x2="23" y2="23"/>
-                        </svg>
-                      ) : (
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                          <circle cx="12" cy="12" r="3"/>
-                        </svg>
-                      )}
-                    </button>
-                  </div>
+                  <label htmlFor="last-name">LAST NAME</label>
+                  <input
+                    id="last-name"
+                    className="input-light"
+                    type="text"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    required
+                  />
                 </div>
+              </div>
 
-                <div className="stack-sm">
-                  <label htmlFor="confirm-password">CONFIRM PASSWORD</label>
-                  <div className="input-password-wrap">
-                    <input
-                      id="confirm-password"
-                      className="input-light"
-                      type={showConfirmPassword ? 'text' : 'password'}
-                      placeholder="••••••••"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      required
-                    />
-                    <button
-                      type="button"
-                      className="password-toggle"
-                      onClick={() => setShowConfirmPassword((v) => !v)}
-                      aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
-                    >
-                      {showConfirmPassword ? (
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
-                          <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
-                          <line x1="1" y1="1" x2="23" y2="23"/>
-                        </svg>
-                      ) : (
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                          <circle cx="12" cy="12" r="3"/>
-                        </svg>
-                      )}
-                    </button>
-                  </div>
+              <div className="stack-sm">
+                <label htmlFor="email">EMAIL ADDRESS</label>
+                <input
+                  id="email"
+                  className="input-light"
+                  type="email"
+                  value={emailValue}
+                  onChange={(e) => setEmailValue(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="stack-sm">
+                <label htmlFor="password">PASSWORD</label>
+                <div className="input-password-wrap">
+                  <input
+                    id="password"
+                    className="input-light"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="password-toggle"
+                    onClick={() => setShowPassword((v) => !v)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? (
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+                        <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+                        <line x1="1" y1="1" x2="23" y2="23"/>
+                      </svg>
+                    ) : (
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                      </svg>
+                    )}
+                  </button>
                 </div>
+              </div>
 
-                <label className="terms-row">
-                  <input type="checkbox" checked={termsAccepted} onChange={(e) => setTermsAccepted(e.target.checked)} />
-                  <span>
-                    I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.
-                  </span>
-                </label>
+              <div className="stack-sm">
+                <label htmlFor="confirm-password">CONFIRM PASSWORD</label>
+                <div className="input-password-wrap">
+                  <input
+                    id="confirm-password"
+                    className="input-light"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    placeholder="••••••••"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="password-toggle"
+                    onClick={() => setShowConfirmPassword((v) => !v)}
+                    aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showConfirmPassword ? (
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+                        <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+                        <line x1="1" y1="1" x2="23" y2="23"/>
+                      </svg>
+                    ) : (
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                      </svg>
+                    )}
+                  </button>
+                </div>
+              </div>
 
-                {error ? <p className="error-text dark">{error}</p> : null}
+              <label className="terms-row">
+                <input type="checkbox" checked={termsAccepted} onChange={(e) => setTermsAccepted(e.target.checked)} />
+                <span>
+                  I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.
+                </span>
+              </label>
 
-                <button className="btn-primary" type="submit" disabled={loading}>
-                  {loading ? 'Signing Up...' : 'Sign Up'}
-                </button>
-              </form>
-            </div>
+              {error ? <p className="error-text dark">{error}</p> : null}
+
+              <button className="btn-primary" type="submit" disabled={loading}>
+                {loading ? 'Signing Up...' : 'Sign Up'}
+              </button>
+            </form>
           </div>
         </div>
       </section>
@@ -702,7 +684,6 @@ function CustomSelect({ id, value, onChange, options, placeholder, required, ari
       const viewportPadding = 12;
       const triggerGap = 6;
       const estimatedHeight = Math.min(260, Math.max(160, options.length * 44 + 12));
-      const clampedWidth = Math.min(triggerRect.width, Math.max(220, viewportWidth - viewportPadding * 2));
       const spaceBelow = viewportHeight - triggerRect.bottom - viewportPadding;
       const spaceAbove = triggerRect.top - viewportPadding;
       const shouldOpenUpward = spaceBelow < Math.min(estimatedHeight, 180) && spaceAbove > spaceBelow;
@@ -710,13 +691,13 @@ function CustomSelect({ id, value, onChange, options, placeholder, required, ari
       const nextMaxHeight = Math.max(120, Math.min(260, availableHeight));
       const nextLeft = Math.min(
         Math.max(viewportPadding, triggerRect.left),
-        Math.max(viewportPadding, viewportWidth - clampedWidth - viewportPadding),
+        Math.max(viewportPadding, viewportWidth - triggerRect.width - viewportPadding),
       );
 
       setOpenUpward(shouldOpenUpward);
       setMenuStyle({
         left: nextLeft,
-        width: clampedWidth,
+        width: triggerRect.width,
         maxHeight: nextMaxHeight,
         top: shouldOpenUpward ? 'auto' : triggerRect.bottom + triggerGap,
         bottom: shouldOpenUpward ? viewportHeight - triggerRect.top + triggerGap : 'auto',
@@ -944,23 +925,7 @@ function OnboardingPage({ push }) {
   return (
     <main className="onboarding-page">
       <div className="onboarding-bg-grid" aria-hidden="true" />
-      <header className="onboarding-topbar">
-        <img src="/images/logo.png" alt="Dgen Technologies" className="brand-logo" />
-        <span className="header-meta-chip">Profile Setup</span>
-      </header>
       <section className="onboarding-shell">
-        <aside className="onboarding-side-panel" aria-label="Onboarding context">
-          <span className="onboarding-side-kicker">Step 2 of 3</span>
-          <h1 className="onboarding-side-title">Shape your ADAM session</h1>
-          <p className="onboarding-side-copy">
-            These details help ADAM tune its responses and personalize the five-minute experience.
-          </p>
-          <ul className="onboarding-side-list">
-            <li>Improved relevance during live conversation</li>
-            <li>Faster setup for business and investor use-cases</li>
-            <li>Priority handoff to the ADAM waitlist</li>
-          </ul>
-        </aside>
 
         <div className="onboarding-card">
           <div className="onboarding-progress">
@@ -1711,49 +1676,6 @@ function DemoPage({ push }) {
       </header>
 
       <main className={`demo-console-shell ${welcomeOpen ? 'blurred' : ''}`}>
-        <section className="demo-console-stage" aria-label="Session controls and status">
-          <article className="stage-card stage-primary">
-            <div>
-              <p className="stage-meta-label">Session Status</p>
-              <h2>{sessionState === 'active' ? 'ADAM live connection established' : 'Preparing ADAM session'}</h2>
-            </div>
-            <div className="stage-chip-row">
-              <span className="stage-chip stage-chip-live">{sessionState.toUpperCase()}</span>
-              <span className="stage-chip">{formatRemaining(timeLeft)} remaining</span>
-              <span className="stage-chip">{turnCount}/{turnsAllowed} turns</span>
-            </div>
-          </article>
-
-          <div className="stage-grid">
-            <article className="stage-card">
-              <p className="stage-meta-label">Microphone</p>
-              <p className="stage-meta-value">
-                {micPermission === 'granted'
-                  ? (isRecording ? 'Listening for your voice' : adamSpeaking ? 'Paused while ADAM speaks' : 'Ready to listen')
-                  : micPermission === 'denied'
-                    ? 'Access blocked'
-                    : 'Requesting permission'}
-              </p>
-              <div className="stage-mic-meter" aria-hidden="true">
-                <span className={isRecording ? 'active' : ''} />
-                <span className={isRecording ? 'active' : ''} />
-                <span className={isRecording ? 'active' : ''} />
-                <span className={isRecording ? 'active' : ''} />
-              </div>
-            </article>
-
-            <article className="stage-card">
-              <p className="stage-meta-label">Session Profile</p>
-              <p className="stage-meta-value">{onboardingData.profession || 'Professional profile pending'}</p>
-              <p className="stage-subcopy">
-                Intent: {onboardingData.intent || 'Exploring ADAM'}
-              </p>
-            </article>
-          </div>
-
-          {errorMsg ? <p className="error-text dark">{errorMsg}</p> : null}
-        </section>
-
         <aside className="demo-console-chat">
           <section className="console-chat-premium">
             <div className="console-chat-head">
@@ -1804,6 +1726,8 @@ function DemoPage({ push }) {
                 Mic: {micPermission === 'granted' ? (isRecording ? 'Listening' : adamSpeaking ? 'Paused while ADAM speaks' : 'Ready') : micPermission === 'denied' ? 'Blocked' : 'Requesting'}
               </span>
             </div>
+
+            {errorMsg ? <p className="error-text dark">{errorMsg}</p> : null}
           </section>
         </aside>
       </main>
@@ -1889,119 +1813,104 @@ function WaitlistPage({ push }) {
           </div>
         </div>
 
-        <div className="waitlist-grid-layout">
-          <aside className="waitlist-summary-card" aria-label="Session completion summary">
-            <span className="waitlist-summary-kicker">5-MINUTE PREVIEW COMPLETE</span>
-            <h2>Continue with priority access</h2>
-            <p>
-              Your demo session has ended. Share quick feedback to help us optimize ADAM and secure your position on the waitlist.
-            </p>
-            <ul>
-              <li>Early product updates</li>
-              <li>Private build announcements</li>
-              <li>Launch invitation priority</li>
-            </ul>
-          </aside>
+        <article className="waitlist-card">
+          {!joined ? (
+            <>
+              <h2 className="waitlist-title">How was your session?</h2>
+              <p className="waitlist-subtitle">
+                Your feedback helps us refine the neural architecture. Join the priority waitlist for early access.
+              </p>
 
-          <article className="waitlist-card">
-            {!joined ? (
-              <>
-                <h2 className="waitlist-title">How was your session?</h2>
-                <p className="waitlist-subtitle">
-                  Your feedback helps us refine the neural architecture. Join the priority waitlist for early access.
-                </p>
+              <form className="waitlist-form" onSubmit={handleSubmit}>
+                <div className="waitlist-section">
+                  <label htmlFor="session-rating" className="waitlist-label">Session Rating</label>
+                  <div id="session-rating" className="waitlist-stars" role="radiogroup" aria-label="Session rating">
+                    {[1, 2, 3, 4, 5].map((value) => (
+                      <button
+                        key={value}
+                        type="button"
+                        className={`waitlist-star ${value <= rating ? 'active' : ''}`}
+                        aria-label={`Rate ${value} out of 5`}
+                        aria-checked={value === rating}
+                        role="radio"
+                        onClick={() => setRating(value)}
+                      >
+                        ★
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-                <form className="waitlist-form" onSubmit={handleSubmit}>
+                <div className="waitlist-section">
+                  <label htmlFor="wl-message" className="waitlist-label">Comments &amp; Observations</label>
+                  <textarea
+                    id="wl-message"
+                    className="waitlist-textarea"
+                    rows={4}
+                    value={message}
+                    placeholder="Share any specific feedback on ADAM's performance..."
+                    onChange={(e) => setMessage(e.target.value)}
+                  />
+                </div>
+
+                <div className="waitlist-grid">
                   <div className="waitlist-section">
-                    <label htmlFor="session-rating" className="waitlist-label">Session Rating</label>
-                    <div id="session-rating" className="waitlist-stars" role="radiogroup" aria-label="Session rating">
-                      {[1, 2, 3, 4, 5].map((value) => (
-                        <button
-                          key={value}
-                          type="button"
-                          className={`waitlist-star ${value <= rating ? 'active' : ''}`}
-                          aria-label={`Rate ${value} out of 5`}
-                          aria-checked={value === rating}
-                          role="radio"
-                          onClick={() => setRating(value)}
-                        >
-                          ★
-                        </button>
-                      ))}
+                    <label htmlFor="wl-name" className="waitlist-label">Full Name</label>
+                    <div className="waitlist-input-wrap">
+                      <User size={16} aria-hidden="true" />
+                      <input
+                        id="wl-name"
+                        className="waitlist-input"
+                        type="text"
+                        value={name}
+                        placeholder="John Doe"
+                        onChange={(e) => setName(e.target.value)}
+                        required
+                      />
                     </div>
                   </div>
 
                   <div className="waitlist-section">
-                    <label htmlFor="wl-message" className="waitlist-label">Comments &amp; Observations</label>
-                    <textarea
-                      id="wl-message"
-                      className="waitlist-textarea"
-                      rows={4}
-                      value={message}
-                      placeholder="Share any specific feedback on ADAM's performance..."
-                      onChange={(e) => setMessage(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="waitlist-grid">
-                    <div className="waitlist-section">
-                      <label htmlFor="wl-name" className="waitlist-label">Full Name</label>
-                      <div className="waitlist-input-wrap">
-                        <User size={16} aria-hidden="true" />
-                        <input
-                          id="wl-name"
-                          className="waitlist-input"
-                          type="text"
-                          value={name}
-                          placeholder="John Doe"
-                          onChange={(e) => setName(e.target.value)}
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    <div className="waitlist-section">
-                      <label htmlFor="wl-email" className="waitlist-label">Email Address</label>
-                      <div className="waitlist-input-wrap">
-                        <Mail size={16} aria-hidden="true" />
-                        <input
-                          id="wl-email"
-                          className="waitlist-input"
-                          type="email"
-                          value={emailValue}
-                          placeholder="john@example.com"
-                          onChange={(e) => setEmailValue(e.target.value)}
-                          required
-                        />
-                      </div>
+                    <label htmlFor="wl-email" className="waitlist-label">Email Address</label>
+                    <div className="waitlist-input-wrap">
+                      <Mail size={16} aria-hidden="true" />
+                      <input
+                        id="wl-email"
+                        className="waitlist-input"
+                        type="email"
+                        value={emailValue}
+                        placeholder="john@example.com"
+                        onChange={(e) => setEmailValue(e.target.value)}
+                        required
+                      />
                     </div>
                   </div>
+                </div>
 
-                  {error ? <p className="error-text">Unable to join right now.</p> : null}
+                {error ? <p className="error-text">Unable to join right now.</p> : null}
 
-                  <div className="waitlist-actions">
-                    <button className="waitlist-later" type="button" onClick={() => push('/demo')}>
-                      Maybe later
-                    </button>
-                    <button className="waitlist-submit" type="submit" disabled={loading}>
-                      {loading ? 'Joining...' : 'Join the Waitlist'}
-                      <ArrowRight size={16} />
-                    </button>
-                  </div>
-                </form>
-              </>
-            ) : (
-              <div className="waitlist-success" role="status" aria-live="polite">
-                <h2 className="waitlist-title">You&apos;re on the priority list.</h2>
-                <p className="waitlist-subtitle">Thanks for the review. We&apos;ll contact you with early access updates.</p>
-                <a className="waitlist-submit waitlist-link" href={WAITLIST_URL} target="_blank" rel="noreferrer">
-                  Open ADAM Waitlist
-                  <ArrowRight size={16} />
-                </a>
-              </div>
-            )}
-          </article>
-        </div>
+                <div className="waitlist-actions">
+                  <button className="waitlist-later" type="button" onClick={() => push('/demo')}>
+                    Maybe later
+                  </button>
+                  <button className="waitlist-submit" type="submit" disabled={loading}>
+                    {loading ? 'Joining...' : 'Join the Waitlist'}
+                    <ArrowRight size={16} />
+                  </button>
+                </div>
+              </form>
+            </>
+          ) : (
+            <div className="waitlist-success" role="status" aria-live="polite">
+              <h2 className="waitlist-title">You&apos;re on the priority list.</h2>
+              <p className="waitlist-subtitle">Thanks for the review. We&apos;ll contact you with early access updates.</p>
+              <a className="waitlist-submit waitlist-link" href={WAITLIST_URL} target="_blank" rel="noreferrer">
+                Open ADAM Waitlist
+                <ArrowRight size={16} />
+              </a>
+            </div>
+          )}
+        </article>
       </section>
     </main>
   );
@@ -2099,8 +2008,7 @@ export default function App() {
           min-height: 100dvh;
           height: 100vh;
           height: 100dvh;
-          overflow-x: hidden;
-          overflow-y: hidden;
+          overflow: hidden;
           display: flex;
           flex-direction: column;
           background: var(--surface);
@@ -2518,15 +2426,13 @@ export default function App() {
 
         .onboarding-page {
           min-height: 100vh;
-          min-height: 100dvh;
           display: grid;
           place-items: center;
           padding: 32px 16px;
           background: #f5f6f8;
           color: #131313;
           position: relative;
-          overflow-x: hidden;
-          overflow-y: auto;
+          overflow: hidden;
         }
 
         .onboarding-bg-grid {
@@ -2543,7 +2449,6 @@ export default function App() {
         .onboarding-shell {
           width: 100%;
           max-width: 560px;
-          max-height: calc(100dvh - 64px);
           position: relative;
           z-index: 1;
         }
@@ -2552,9 +2457,6 @@ export default function App() {
           background: #ffffff;
           border-radius: 20px;
           padding: 36px 40px 40px;
-          max-height: inherit;
-          overflow-x: hidden;
-          overflow-y: auto;
           box-shadow:
             0 0 0 1px rgba(0,0,0,0.06),
             0 8px 32px rgba(0,0,0,0.08),
@@ -4172,11 +4074,6 @@ export default function App() {
         }
 
         @media (max-width: 760px) {
-          .demo-console-page {
-            background-position: 50% 50%;
-            background-attachment: scroll;
-          }
-
           .demo-console-topbar {
             padding: 0 16px;
           }
@@ -4201,184 +4098,6 @@ export default function App() {
 
           .demo-hero-waveform {
             justify-content: flex-start;
-          }
-        }
-
-        @media (max-width: 520px) {
-          .demo-console-page {
-            background-position: 50% 50%;
-            background-size: cover;
-          }
-
-          .console-chat-stream {
-            gap: 12px;
-          }
-
-          .console-message {
-            max-width: 78%;
-            gap: 4px;
-          }
-
-          .console-message-bubble {
-            display: inline-block;
-            width: fit-content;
-            max-width: 100%;
-            padding: 9px 10px;
-            border-radius: 12px;
-            font-size: 12px;
-            line-height: 1.4;
-          }
-
-          .console-message-meta {
-            font-size: 9px;
-          }
-
-          .header-shell {
-            padding: 10px 12px;
-          }
-
-          .brand-logo {
-            height: 32px;
-          }
-
-          .landing-main {
-            justify-content: center;
-            padding: 68px 12px 12px;
-          }
-
-          .form-card {
-            max-width: 100%;
-            max-height: calc(100dvh - 84px);
-            padding: 16px 16px 0;
-            border-radius: 20px;
-          }
-
-          .form-scroll-body {
-            padding-right: 2px;
-            padding-bottom: 16px;
-          }
-
-          .form-heading h2 {
-            font-size: 22px;
-            line-height: 28px;
-          }
-
-          .onboarding-page {
-            place-items: start center;
-            padding: 16px 10px;
-          }
-
-          .onboarding-shell {
-            max-height: calc(100dvh - 32px);
-          }
-
-          .onboarding-card {
-            padding: 20px 14px 22px;
-            border-radius: 14px;
-          }
-
-          .onb-phone-row {
-            flex-direction: column;
-            gap: 8px;
-          }
-
-          .onb-country-wrap {
-            width: 100%;
-          }
-
-          .onboarding-actions {
-            flex-direction: column;
-            align-items: stretch;
-            gap: 10px;
-          }
-
-          .onboarding-next {
-            width: 100%;
-            min-width: 0;
-          }
-
-          .demo-console-topbar {
-            height: auto;
-            min-height: 62px;
-            padding: 10px 12px;
-            gap: 10px;
-          }
-
-          .demo-brand-logo {
-            height: 30px;
-          }
-
-          .demo-topbar-actions {
-            gap: 8px;
-            min-width: 0;
-          }
-
-          .demo-timer {
-            font-size: 20px;
-          }
-
-          .demo-end-inline {
-            padding: 7px 10px;
-            font-size: 11px;
-          }
-
-          .demo-console-shell {
-            padding: 78px 12px 14px;
-            gap: 12px;
-          }
-
-          .console-chat-stream {
-            padding: 14px 12px;
-          }
-
-          .demo-session-meta {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 4px;
-          }
-
-          .waitlist-page {
-            justify-content: flex-start;
-            padding: 76px 10px 14px;
-          }
-
-          .waitlist-card {
-            padding: 18px 12px;
-            border-radius: 14px;
-          }
-
-          .waitlist-title {
-            font-size: 24px;
-          }
-
-          .waitlist-progress-row {
-            gap: 8px;
-            flex-wrap: wrap;
-          }
-        }
-
-        @media (max-height: 760px) {
-          .landing-main {
-            align-items: flex-start;
-            padding-top: 64px;
-          }
-
-          .form-card {
-            max-height: calc(100dvh - 76px);
-          }
-
-          .onboarding-page {
-            place-items: start center;
-            padding-top: 12px;
-            padding-bottom: 12px;
-          }
-
-          .onboarding-shell {
-            max-height: calc(100dvh - 24px);
-          }
-
-          .demo-console-shell {
-            padding-bottom: 12px;
           }
         }
 
@@ -4727,7 +4446,6 @@ export default function App() {
           animation: cselOpen 140ms cubic-bezier(0.2,0,0,1) both;
           scrollbar-width: thin;
           scrollbar-color: rgba(86,224,131,0.2) transparent;
-          overscroll-behavior: contain;
         }
 
         .csel-list.open-upward {
@@ -4766,7 +4484,6 @@ export default function App() {
           transition: background 90ms ease, color 90ms ease;
           user-select: none;
           list-style: none;
-          min-height: 42px;
         }
 
         .csel-item:hover,
@@ -4796,793 +4513,6 @@ export default function App() {
 
         @media (prefers-reduced-motion: reduce) {
           .csel-list { animation: none; }
-        }
-
-        @media (max-width: 520px) {
-          .csel-list {
-            border-radius: 10px;
-            padding: 4px;
-          }
-
-          .csel-item {
-            padding: 11px 10px 11px 30px;
-            font-size: 13px;
-          }
-        }
-
-        /* v2 redesign: ADAM premium shell */
-        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Share+Tech+Mono&family=DM+Sans:wght@400;500&display=swap');
-
-        :root {
-          --app-bg: #060707;
-          --app-surface: #0f1211;
-          --app-surface-elev: #151a18;
-          --app-border: rgba(255, 255, 255, 0.11);
-          --app-text: #edf2ef;
-          --app-muted: #9ba7a1;
-          --green-main: #40e17b;
-          --green-strong: #19b35c;
-          --glass: linear-gradient(145deg, rgba(20, 28, 24, 0.9), rgba(14, 18, 17, 0.92));
-        }
-
-        html,
-        body {
-          overflow-x: hidden;
-          font-family: 'DM Sans', sans-serif;
-          background: #060707;
-          color: var(--app-text);
-        }
-
-        h1,
-        h2,
-        h3,
-        .brand-text,
-        .waitlist-title,
-        .onboarding-header h2,
-        .form-heading h2,
-        .stage-card h2 {
-          font-family: 'Rajdhani', sans-serif;
-          letter-spacing: 0.01em;
-        }
-
-        .site-root,
-        .onboarding-page,
-        .demo-console-page,
-        .waitlist-page {
-          background: radial-gradient(circle at 8% 6%, rgba(64, 225, 123, 0.14), transparent 34%), #060707;
-        }
-
-        .premium-gradient-bg,
-        .onboarding-bg-grid,
-        .demo-console-bg,
-        .demo-console-overlay {
-          opacity: 1;
-          pointer-events: none;
-          background-image:
-            radial-gradient(circle at 20% 20%, rgba(64, 225, 123, 0.16), transparent 30%),
-            radial-gradient(circle at 80% 0%, rgba(255, 255, 255, 0.08), transparent 34%),
-            linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 35%);
-          background-size: cover;
-          animation: none;
-        }
-
-        .header-shell,
-        .onboarding-topbar,
-        .demo-console-topbar,
-        .waitlist-topbar {
-          position: sticky;
-          top: 0;
-          z-index: 40;
-          height: auto;
-          min-height: 72px;
-          padding: 14px 20px;
-          border-bottom: 1px solid var(--app-border);
-          background: rgba(8, 10, 10, 0.86);
-          backdrop-filter: blur(12px);
-        }
-
-        .header-shell-inner {
-          width: min(1200px, 100%);
-          margin: 0 auto;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 12px;
-        }
-
-        .header-meta-chip {
-          font-family: 'Share Tech Mono', monospace;
-          font-size: 11px;
-          letter-spacing: 0.08em;
-          color: #d7f9e5;
-          border: 1px solid rgba(64, 225, 123, 0.35);
-          background: rgba(25, 179, 92, 0.15);
-          border-radius: 999px;
-          padding: 6px 10px;
-          white-space: nowrap;
-        }
-
-        .brand-logo,
-        .waitlist-logo,
-        .demo-brand-logo {
-          height: 34px;
-          width: auto;
-          object-fit: contain;
-        }
-
-        .landing-main {
-          min-height: calc(100dvh - 72px);
-          padding: 24px;
-          display: grid;
-          place-items: center;
-          background: transparent;
-        }
-
-        .login-grid {
-          width: min(1180px, 100%);
-          display: grid;
-          grid-template-columns: minmax(0, 1fr) minmax(360px, 460px);
-          gap: 28px;
-          align-items: stretch;
-        }
-
-        .login-showcase {
-          border: 1px solid var(--app-border);
-          background: var(--glass);
-          border-radius: 22px;
-          padding: 30px;
-          box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-          display: grid;
-          align-content: center;
-          gap: 14px;
-          min-height: 580px;
-        }
-
-        .login-kicker,
-        .stage-meta-label,
-        .onboarding-side-kicker,
-        .waitlist-summary-kicker {
-          font-family: 'Share Tech Mono', monospace;
-          font-size: 11px;
-          letter-spacing: 0.1em;
-          color: #8aeeb4;
-          text-transform: uppercase;
-        }
-
-        .login-title,
-        .onboarding-side-title {
-          margin: 0;
-          font-size: clamp(34px, 5vw, 54px);
-          line-height: 0.96;
-          color: #f2f8f4;
-        }
-
-        .login-copy,
-        .onboarding-side-copy,
-        .waitlist-summary-card p,
-        .stage-subcopy {
-          margin: 0;
-          color: var(--app-muted);
-          font-size: 15px;
-          line-height: 1.55;
-        }
-
-        .login-points,
-        .onboarding-side-list,
-        .waitlist-summary-card ul {
-          margin: 6px 0 0;
-          padding: 0;
-          list-style: none;
-          display: grid;
-          gap: 10px;
-        }
-
-        .login-point,
-        .onboarding-side-list li,
-        .waitlist-summary-card li {
-          padding: 10px 12px;
-          border-radius: 12px;
-          border: 1px solid rgba(255, 255, 255, 0.09);
-          background: rgba(255, 255, 255, 0.03);
-          color: #d9e4de;
-          font-size: 14px;
-        }
-
-        .form-card,
-        .onboarding-card,
-        .console-chat-premium,
-        .waitlist-card,
-        .stage-card,
-        .waitlist-summary-card {
-          border-radius: 20px;
-          border: 1px solid var(--app-border);
-          background: var(--glass);
-          backdrop-filter: blur(16px);
-          box-shadow: 0 20px 48px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-          color: var(--app-text);
-        }
-
-        .form-card {
-          padding: 24px 24px 0;
-          max-height: calc(100dvh - 132px);
-        }
-
-        .form-scroll-body {
-          padding-bottom: 24px;
-          overflow-x: hidden;
-        }
-
-        .form-heading h2 {
-          margin: 0 0 6px;
-          font-size: 34px;
-          line-height: 1;
-          color: #f0f5f2;
-        }
-
-        .form-heading p {
-          margin: 0;
-          color: var(--app-muted);
-          font-size: 14px;
-        }
-
-        .stack-sm label,
-        .onb-label,
-        .waitlist-label {
-          font-family: 'Share Tech Mono', monospace;
-          color: #9dddb8;
-        }
-
-        .input-light,
-        .onboarding-input,
-        .waitlist-input,
-        .waitlist-textarea,
-        .waitlist-input-wrap,
-        .csel-trigger {
-          border: 1px solid rgba(255, 255, 255, 0.15);
-          background: rgba(4, 7, 6, 0.6);
-          color: #ecf4ef;
-          box-shadow: none;
-        }
-
-        .input-light::placeholder,
-        .waitlist-input::placeholder,
-        .waitlist-textarea::placeholder,
-        .onboarding-input::placeholder,
-        .csel-trigger.placeholder .csel-value {
-          color: #7f9088;
-        }
-
-        .input-light:focus,
-        .onboarding-input:focus,
-        .waitlist-textarea:focus,
-        .waitlist-input-wrap:focus-within,
-        .csel-trigger:focus,
-        .csel-trigger[aria-expanded='true'] {
-          border-color: rgba(64, 225, 123, 0.64);
-          box-shadow: 0 0 0 3px rgba(64, 225, 123, 0.16);
-          background: rgba(8, 12, 10, 0.88);
-        }
-
-        .password-toggle,
-        .waitlist-input-wrap svg,
-        .onb-chevron,
-        .csel-arrow {
-          color: #8ea199;
-        }
-
-        .terms-row,
-        .terms-row span,
-        .waitlist-subtitle,
-        .onboarding-header p,
-        .chat-brand p,
-        .demo-session-meta {
-          color: var(--app-muted);
-        }
-
-        .terms-row a,
-        .waitlist-progress-row span:first-child {
-          color: #74f4ab;
-        }
-
-        .btn-primary,
-        .onboarding-next,
-        .waitlist-submit,
-        .demo-welcome-button {
-          border-radius: 12px;
-          border: 1px solid rgba(64, 225, 123, 0.4);
-          background: linear-gradient(135deg, #2ad26f, #19b35c);
-          color: #00170a;
-          font-family: 'Rajdhani', sans-serif;
-          font-weight: 700;
-          letter-spacing: 0.06em;
-          text-transform: uppercase;
-          transition: transform 180ms ease, box-shadow 180ms ease;
-          box-shadow: 0 10px 26px rgba(25, 179, 92, 0.33);
-        }
-
-        .btn-primary:hover,
-        .onboarding-next:hover,
-        .waitlist-submit:hover,
-        .demo-welcome-button:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 14px 30px rgba(25, 179, 92, 0.4);
-        }
-
-        .btn-google {
-          background: rgba(255, 255, 255, 0.92);
-          border-color: rgba(255, 255, 255, 0.8);
-          color: #161f1b;
-        }
-
-        .or-divider::before,
-        .onb-separator::before,
-        .onb-separator::after,
-        .waitlist-actions {
-          border-color: rgba(255, 255, 255, 0.12);
-        }
-
-        .error-text.dark {
-          color: #ffb9b1;
-          border: 1px solid rgba(235, 95, 84, 0.55);
-          background: rgba(69, 12, 9, 0.55);
-        }
-
-        .onboarding-page {
-          padding: 18px;
-          min-height: 100dvh;
-        }
-
-        .onboarding-shell {
-          width: min(1200px, 100%);
-          margin: 8px auto 0;
-          display: grid;
-          grid-template-columns: minmax(260px, 1fr) minmax(360px, 560px);
-          gap: 24px;
-          max-height: unset;
-        }
-
-        .onboarding-side-panel {
-          border: 1px solid var(--app-border);
-          border-radius: 20px;
-          background: var(--glass);
-          padding: 26px;
-          display: grid;
-          align-content: center;
-          gap: 12px;
-        }
-
-        .onboarding-card {
-          padding: 26px;
-          max-height: calc(100dvh - 132px);
-        }
-
-        .onboarding-progress-row,
-        .waitlist-progress-row,
-        .demo-session-meta,
-        .console-message-meta,
-        .chat-brand p {
-          font-family: 'Share Tech Mono', monospace;
-          font-size: 11px;
-        }
-
-        .onboarding-progress-bar,
-        .waitlist-progress-track {
-          background: rgba(255, 255, 255, 0.12);
-        }
-
-        .onboarding-progress-fill,
-        .waitlist-progress-fill {
-          background: linear-gradient(90deg, #22d06b, #66ef9d);
-          box-shadow: 0 0 18px rgba(64, 225, 123, 0.45);
-        }
-
-        .onboarding-back,
-        .waitlist-later,
-        .demo-end-inline,
-        .waitlist-close {
-          border: 1px solid rgba(255, 255, 255, 0.16);
-          background: rgba(255, 255, 255, 0.05);
-          color: #dbe7e0;
-        }
-
-        .onboarding-back:hover,
-        .waitlist-later:hover,
-        .demo-end-inline:hover,
-        .waitlist-close:hover {
-          border-color: rgba(64, 225, 123, 0.45);
-          color: #93efb9;
-        }
-
-        .demo-console-page {
-          overflow-x: hidden;
-          overflow-y: auto;
-        }
-
-        .demo-console-shell {
-          width: min(1200px, 100%);
-          margin: 0 auto;
-          padding: 18px;
-          min-height: calc(100dvh - 86px);
-          height: auto;
-          grid-template-columns: minmax(0, 1fr) minmax(340px, 430px);
-          gap: 20px;
-          overflow: visible;
-        }
-
-        .demo-console-shell.blurred {
-          filter: blur(8px);
-        }
-
-        .demo-console-stage {
-          display: grid;
-          align-content: start;
-          gap: 16px;
-          min-width: 0;
-        }
-
-        .stage-card {
-          padding: 18px;
-          display: grid;
-          gap: 12px;
-        }
-
-        .stage-card h2 {
-          margin: 2px 0 0;
-          font-size: clamp(24px, 3.1vw, 36px);
-          line-height: 1;
-          color: #ebf7ef;
-        }
-
-        .stage-grid {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 16px;
-        }
-
-        .stage-meta-value {
-          margin: 0;
-          font-size: 17px;
-          line-height: 1.35;
-          color: #e8f3ec;
-          font-family: 'Rajdhani', sans-serif;
-          font-weight: 600;
-        }
-
-        .stage-chip-row {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-        }
-
-        .stage-chip {
-          font-family: 'Share Tech Mono', monospace;
-          font-size: 11px;
-          color: #d3efe0;
-          border: 1px solid rgba(255, 255, 255, 0.15);
-          background: rgba(255, 255, 255, 0.04);
-          border-radius: 999px;
-          padding: 6px 9px;
-        }
-
-        .stage-chip-live {
-          color: #8df6b8;
-          border-color: rgba(64, 225, 123, 0.45);
-          background: rgba(64, 225, 123, 0.12);
-        }
-
-        .stage-mic-meter {
-          display: flex;
-          align-items: end;
-          gap: 5px;
-          min-height: 24px;
-        }
-
-        .stage-mic-meter span {
-          width: 5px;
-          height: 7px;
-          border-radius: 999px;
-          background: rgba(255, 255, 255, 0.18);
-          transition: height 180ms ease, background-color 180ms ease;
-        }
-
-        .stage-mic-meter span.active {
-          animation: meter-pulse 900ms ease-in-out infinite;
-          background: rgba(64, 225, 123, 0.95);
-        }
-
-        .stage-mic-meter span:nth-child(2) { animation-delay: 0.08s; }
-        .stage-mic-meter span:nth-child(3) { animation-delay: 0.16s; }
-        .stage-mic-meter span:nth-child(4) { animation-delay: 0.24s; }
-
-        @keyframes meter-pulse {
-          0%, 100% { height: 8px; }
-          50% { height: 22px; }
-        }
-
-        .demo-console-chat {
-          max-width: none;
-          min-height: 0;
-        }
-
-        .console-chat-head {
-          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-          background: rgba(255, 255, 255, 0.03);
-          padding: 14px;
-        }
-
-        .chat-brand h3 {
-          margin: 0;
-          font-size: 20px;
-          color: #ecf5f0;
-        }
-
-        .chat-icon,
-        .console-message-speaker,
-        .console-message-speaker.adam,
-        .demo-timer {
-          color: #7ef4b2;
-        }
-
-        .console-chat-stream {
-          padding: 14px;
-          gap: 14px;
-        }
-
-        .console-message {
-          max-width: 95%;
-        }
-
-        .console-message-bubble {
-          border-radius: 14px;
-          padding: 12px 14px;
-          font-size: 14px;
-          line-height: 1.56;
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          box-shadow: none;
-        }
-
-        .console-message-bubble.adam,
-        .console-message-bubble.adam-active {
-          background: rgba(255, 255, 255, 0.05);
-          color: #ebf5ef;
-        }
-
-        .console-message-bubble.user {
-          background: rgba(64, 225, 123, 0.16);
-          color: #f0fff7;
-          border-color: rgba(64, 225, 123, 0.3);
-        }
-
-        .demo-session-meta {
-          border-top: 1px solid rgba(255, 255, 255, 0.08);
-          padding: 12px 14px;
-        }
-
-        .demo-welcome-overlay {
-          background: rgba(1, 2, 2, 0.66);
-        }
-
-        .demo-welcome-card,
-        .demo-connecting-card {
-          border: 1px solid rgba(255, 255, 255, 0.15);
-          background: linear-gradient(155deg, rgba(12, 18, 15, 0.94), rgba(7, 11, 9, 0.96));
-          color: #f0f7f3;
-        }
-
-        .demo-welcome-card h1 {
-          color: #eff9f2;
-          font-size: 30px;
-          line-height: 1;
-        }
-
-        .demo-welcome-card p,
-        .demo-connecting-status {
-          color: #b5c8be;
-        }
-
-        .demo-welcome-note {
-          color: #ccefdc;
-        }
-
-        .waitlist-page {
-          padding: 16px;
-          min-height: 100dvh;
-          overflow-x: hidden;
-        }
-
-        .waitlist-shell {
-          width: min(1200px, 100%);
-          margin: 10px auto 0;
-        }
-
-        .waitlist-grid-layout {
-          display: grid;
-          grid-template-columns: minmax(260px, 1fr) minmax(0, 1.45fr);
-          gap: 22px;
-          align-items: start;
-        }
-
-        .waitlist-summary-card {
-          padding: 24px;
-          display: grid;
-          gap: 12px;
-        }
-
-        .waitlist-summary-card h2 {
-          margin: 0;
-          font-size: 36px;
-          line-height: 0.95;
-          color: #eef8f3;
-        }
-
-        .waitlist-card {
-          padding: 22px;
-          border-radius: 20px;
-        }
-
-        .waitlist-title {
-          margin: 0 0 8px;
-          color: #edf7f2;
-          font-size: 42px;
-          line-height: 0.94;
-        }
-
-        .waitlist-subtitle {
-          max-width: 620px;
-          font-size: 14px;
-          line-height: 1.55;
-        }
-
-        .waitlist-textarea {
-          min-height: 112px;
-          resize: vertical;
-        }
-
-        .waitlist-actions {
-          border-top: 1px solid rgba(255, 255, 255, 0.11);
-          padding-top: 14px;
-        }
-
-        .waitlist-link {
-          width: auto;
-          text-decoration: none;
-        }
-
-        .csel-list {
-          background: #0b100e;
-          border-color: rgba(64, 225, 123, 0.32);
-        }
-
-        .csel-item {
-          color: #e6f2eb;
-        }
-
-        .csel-item:hover,
-        .csel-item.focused,
-        .csel-item.selected {
-          background: rgba(64, 225, 123, 0.14);
-          color: #8df6b8;
-        }
-
-        .csel-check {
-          color: #8df6b8;
-        }
-
-        .demo-welcome-button:focus-visible,
-        .waitlist-submit:focus-visible,
-        .btn-primary:focus-visible,
-        .btn-google:focus-visible,
-        .csel-trigger:focus-visible,
-        .waitlist-close:focus-visible,
-        .demo-end-inline:focus-visible {
-          outline: 2px solid #9af7bd;
-          outline-offset: 2px;
-        }
-
-        @media (max-width: 1060px) {
-          .login-grid,
-          .onboarding-shell,
-          .waitlist-grid-layout,
-          .demo-console-shell {
-            grid-template-columns: 1fr;
-          }
-
-          .login-showcase,
-          .onboarding-side-panel,
-          .waitlist-summary-card {
-            min-height: auto;
-          }
-
-          .demo-console-shell {
-            padding-bottom: 20px;
-          }
-
-          .stage-grid {
-            grid-template-columns: 1fr;
-          }
-        }
-
-        @media (max-width: 720px) {
-          .header-shell,
-          .onboarding-topbar,
-          .demo-console-topbar,
-          .waitlist-topbar {
-            padding: 12px;
-            min-height: 66px;
-          }
-
-          .header-meta-chip {
-            font-size: 10px;
-            padding: 5px 8px;
-          }
-
-          .landing-main,
-          .onboarding-page,
-          .waitlist-page,
-          .demo-console-shell {
-            padding: 12px;
-          }
-
-          .form-card,
-          .onboarding-card,
-          .waitlist-card,
-          .waitlist-summary-card,
-          .stage-card,
-          .login-showcase {
-            border-radius: 16px;
-            padding: 16px;
-          }
-
-          .form-heading h2,
-          .waitlist-title {
-            font-size: 30px;
-          }
-
-          .onboarding-side-title,
-          .login-title {
-            font-size: clamp(28px, 9vw, 42px);
-          }
-
-          .demo-console-topbar {
-            flex-wrap: wrap;
-            gap: 8px;
-          }
-
-          .demo-topbar-actions {
-            width: 100%;
-            justify-content: space-between;
-          }
-
-          .demo-end-inline {
-            padding: 7px 10px;
-            font-size: 11px;
-          }
-
-          .waitlist-grid {
-            grid-template-columns: 1fr;
-            gap: 12px;
-          }
-
-          .waitlist-actions {
-            flex-direction: column;
-            align-items: stretch;
-          }
-
-          .waitlist-submit {
-            width: 100%;
-          }
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-          .stage-mic-meter span.active,
-          .demo-connecting-spinner,
-          .demo-welcome-overlay,
-          .btn-primary,
-          .waitlist-submit,
-          .demo-welcome-button {
-            animation: none;
-            transition: none;
-          }
         }
       `}</style>
       <AppProvider>
