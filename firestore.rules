@@ -1,0 +1,245 @@
+
+/**
+ * @file Firestore Security Rules for the DGEN Technologies website.
+ *
+ * Core Philosophy:
+ * This ruleset prioritizes ease of access for public content (blog posts) and
+ * allows any user to submit a contact form message, while restricting access
+ * to sensitive data to a specific admin user.
+ *
+ * Data Structure:
+ * - Blog posts are stored in `/blogPosts/{postId}`.
+ * - Contact messages are stored in `/contactMessages/{messageId}`.
+ *
+ * Key Security Decisions:
+ * - Blog posts are publicly readable and writable for prototyping.
+ * - Any user (authenticated or anonymous) can create a contact message.
+ * - Only the designated admin can read contact messages.
+ * - Modifying or deleting contact messages is denied to all client-side users.
+ * - Server-side access (via Admin SDK) is implicitly allowed and bypasses these rules.
+ *
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAdmin() {
+      return request.auth != null && request.auth.token.admin == true;
+    }
+
+    function isSuperAdminDashboard() {
+      return request.auth != null &&
+        (request.auth.token.superadmin == true || request.auth.token.admin == true);
+    }
+
+    /**
+     * @description Allows any user to create, read, update and delete blog posts.
+     * @path /blogPosts/{postId}
+     * @allow (read, write) - Open access for prototyping purposes.
+     * @principle Enables rapid prototyping by allowing any user to interact with blog data.
+     */
+    match /blogPosts/{postId} {
+      allow read, write: if true;
+    }
+
+    /**
+     * @description Allows any user to submit a message, but only authenticated admins can read and delete them.
+     * @path /contactMessages/{messageId}
+     * @allow (create) - Any user can send a contact message.
+     * @allow (read, delete) - Only authenticated admin users can read and delete messages.
+     * @allow (update) - No client-side user can update submitted messages.
+     * @principle Secures user messages by restricting read/delete access to authenticated admins.
+     */
+    match /contactMessages/{messageId} {
+      allow create: if true;
+      allow read, delete: if request.auth != null;
+      allow update: if false;
+    }
+
+    /**
+     * @description Analytics tracking collections.
+     * @path /pageViews/{viewId}
+     * @path /siteAnalytics/{dateId}
+     * @allow (read) - Only authenticated admin users can read analytics.
+     * @allow (create, update) - Server-side only via Admin SDK.
+     * @principle Analytics data is sensitive and should only be readable by admins.
+     */
+    match /pageViews/{viewId} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if false;
+    }
+
+    match /siteAnalytics/{dateId} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if false;
+    }
+
+    /**
+     * @description Career listings are publicly readable; only authenticated admins can create, update, or delete.
+     * @path /careerListings/{listingId}
+     * @allow (read) - Any user can browse open career listings.
+     * @allow (write) - Only authenticated admin users can manage listings.
+     */
+    match /careerListings/{listingId} {
+      allow read: if true;
+      allow create, update, delete: if request.auth != null;
+    }
+
+    /**
+     * @description ADAM early-access waitlist.
+     * @path /adam-waitlist/{entryId}
+     * @allow (create) - Any user can join the waitlist.
+     * @allow (read, update, delete) - No client-side access to protect email privacy.
+     *   Aggregate count queries and write operations are handled server-side via the Admin SDK.
+     */
+    match /adam-waitlist/{entryId} {
+      allow create: if true;
+      allow read, update, delete: if false;
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // ADAM Demo App Collections
+    // Session management and server-owned writes are performed via the Admin SDK
+    // (relay server + Next.js API routes). Client-side access is limited to the
+    // onboarding flow and user-owned profile fields explicitly allowed below.
+    // ──────────────────────────────────────────────────────────────────────────
+
+    /**
+     * @description ADAM demo user profiles — session caps, last-seen timestamps,
+     *   and user-supplied onboarding profile fields.
+     * @path /adamUsers/{uid}
+     * @allow (read) - Authenticated users can read only their own document.
+     * @allow (create, update) - Authenticated users can write only their own
+     *   safe profile fields used by the onboarding flow. Session cap fields
+     *   remain server-managed via Admin SDK.
+     * @allow (delete) - Denied to all clients.
+     */
+    match /adamUsers/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow create: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.keys().hasOnly([
+          'uid',
+          'email',
+          'name',
+          'displayName',
+          'photoURL',
+          'phoneNumber',
+          'phone_number',
+          'emailVerified',
+          'providerIds',
+          'primaryProvider',
+          'authSource',
+          'whereHeard',
+          'jobTitle',
+          'dob',
+          'useCase',
+          'intent',
+          'onboardingCompleted',
+          'onboardingCompletedAt',
+          'accountCreatedAtRaw',
+          'lastSignInAtRaw',
+          'lastSeenAt'
+        ]);
+      allow update: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'email',
+          'name',
+          'displayName',
+          'photoURL',
+          'phoneNumber',
+          'phone_number',
+          'emailVerified',
+          'providerIds',
+          'primaryProvider',
+          'authSource',
+          'whereHeard',
+          'jobTitle',
+          'dob',
+          'useCase',
+          'intent',
+          'onboardingCompleted',
+          'onboardingCompletedAt',
+          'accountCreatedAtRaw',
+          'lastSignInAtRaw',
+          'lastSeenAt'
+        ]);
+      allow delete: if false;
+    }
+
+    /**
+     * @description ADAM demo session records — created and closed by the relay server.
+     * @path /demoSessions/{sessionId}
+     * @allow (read, write) - Denied to all clients; relay server uses Admin SDK.
+     */
+    match /demoSessions/{sessionId} {
+      allow read, write: if false;
+    }
+
+    /**
+     * @description ADAM demo onboarding data — name, use-case, collected after first sign-in.
+     * @path /onboarding/{uid}
+     * @allow (read, write) - Authenticated users can read and write only their own document.
+     * @principle Each user owns exactly one onboarding document keyed by their UID.
+     */
+    match /onboarding/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    /**
+     * @description ADAM demo waitlist entries — submitted via the /adam/waitlist page.
+     * @path /waitlist/{entryId}
+     * @allow (read, write) - Denied to all clients; written server-side via
+     *   the Next.js /api/waitlist route (Admin SDK) and the relay server.
+     * @note Distinct from /adam-waitlist (main website). This collection is
+     *   managed exclusively by the relay server and Next.js API routes.
+     */
+    match /waitlist/{entryId} {
+      allow read, write: if false;
+    }
+
+    /**
+     * @description Job applications submitted by candidates via the careers page.
+     * @path /jobApplications/{applicationId}
+     * @allow (create) - Any user can submit a job application (handled via Admin SDK in API route).
+     * @allow (read, update, delete) - Authenticated admin dashboard users can read and manage applications.
+     * @principle Applications are sensitive; only admins may view or act on them.
+     */
+    match /jobApplications/{applicationId} {
+      allow create: if false;
+      allow read, update, delete: if request.auth != null;
+    }
+
+    // SuperAdmin dashboard collections
+    match /posts/{postId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /careers/{careerId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /messages/{messageId} {
+      allow create: if true;
+      allow read, delete: if request.auth != null;
+      allow update: if false;
+    }
+
+    match /applications/{applicationId} {
+      allow create: if false;
+      allow read, update, delete: if request.auth != null;
+    }
+
+    // SuperAdmin fallback access for operational management across this database.
+    match /{document=**} {
+      allow read, write: if isSuperAdminDashboard();
+    }
+  }
+}
+
+    

@@ -28,6 +28,7 @@ export async function POST(req: NextRequest) {
       company?: string;
       use_case?: string;
       referral?: string;
+      rating?: number;
     };
 
     const normalizedEmail = normalizeField(body.email, 320).toLowerCase();
@@ -35,9 +36,22 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: 'Valid email is required' }, { status: 400 });
     }
 
+    // Validate rating — must be 1–5 integer if provided
+    const rawRating = typeof body.rating === 'number' ? Math.round(body.rating) : null;
+    const safeRating = rawRating !== null && rawRating >= 1 && rawRating <= 5 ? rawRating : null;
+
     const collectionRef = adminDb.collection('waitlist');
     const existing = await collectionRef.where('email', '==', normalizedEmail).limit(1).get();
     if (!existing.empty) {
+      // Update rating/feedback if the user is re-submitting the review
+      const existingDoc = existing.docs[0];
+      const updateData: Record<string, unknown> = {};
+      if (safeRating !== null) updateData.rating = safeRating;
+      const feedback = normalizeField(body.use_case, 800);
+      if (feedback) updateData.feedback = feedback;
+      if (Object.keys(updateData).length > 0) {
+        await existingDoc.ref.update(updateData);
+      }
       return Response.json({ success: true, alreadyRegistered: true });
     }
 
@@ -45,8 +59,9 @@ export async function POST(req: NextRequest) {
       email: normalizedEmail,
       name: normalizeField(body.name),
       company: normalizeField(body.company),
-      useCase: normalizeField(body.use_case, 800),
+      feedback: normalizeField(body.use_case, 800),
       referral: normalizeField(body.referral),
+      rating: safeRating,
       signedUpAt: FieldValue.serverTimestamp(),
       confirmed: false,
     });
