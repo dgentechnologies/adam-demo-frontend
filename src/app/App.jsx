@@ -117,6 +117,77 @@ async function getOnboardingRecord(uid) {
   }
 }
 
+function roundCoordinate(value) {
+  if (!Number.isFinite(value)) {
+    return null;
+  }
+
+  return Math.round(value * 10000) / 10000;
+}
+
+async function getClientLocationSnapshot() {
+  const timezone = (() => {
+    try {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    } catch (_error) {
+      return '';
+    }
+  })();
+
+  const locale = typeof navigator !== 'undefined' ? navigator.language || '' : '';
+  const base = {
+    timezone,
+    locale,
+    capturedAt: Date.now(),
+  };
+
+  if (typeof navigator === 'undefined' || !navigator.geolocation) {
+    return { ...base, permission: 'unsupported' };
+  }
+
+  return new Promise((resolve) => {
+    let settled = false;
+
+    const finish = (payload) => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      resolve({ ...base, ...payload });
+    };
+
+    const timeoutId = window.setTimeout(() => {
+      finish({ permission: 'timeout' });
+    }, 5500);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        window.clearTimeout(timeoutId);
+        finish({
+          permission: 'granted',
+          latitude: roundCoordinate(position.coords.latitude),
+          longitude: roundCoordinate(position.coords.longitude),
+          accuracyMeters: Number.isFinite(position.coords.accuracy)
+            ? Math.round(position.coords.accuracy)
+            : null,
+        });
+      },
+      (error) => {
+        window.clearTimeout(timeoutId);
+        finish({
+          permission: error?.code === 1 ? 'denied' : 'unavailable',
+        });
+      },
+      {
+        enableHighAccuracy: false,
+        timeout: 5000,
+        maximumAge: 300000,
+      },
+    );
+  });
+}
+
 const AppContext = createContext(null);
 
 function AppProvider({ children }) {
@@ -1321,8 +1392,16 @@ function DemoPage({ push }) {
     }
 
     try {
+      setConnectingStatus('Getting your location…');
+      const clientLocation = await getClientLocationSnapshot();
+
       setConnectingStatus('Initializing session…');
-      const startResp = await apiDemoStart({ userId, idToken: authToken, startTime: Date.now() });
+      const startResp = await apiDemoStart({
+        userId,
+        idToken: authToken,
+        startTime: Date.now(),
+        location: clientLocation,
+      });
       if (!startResp.ok) {
         setErrorMsg(startResp.data?.error || 'Unable to start session.');
         setSessionState('error');
@@ -1336,7 +1415,7 @@ function DemoPage({ push }) {
       const tokenResp = await fetch('/api/relay-token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idToken: authToken }),
+        body: JSON.stringify({ idToken: authToken, location: clientLocation }),
       });
 
       const tokenJson = await tokenResp.json().catch(() => ({}));

@@ -40,6 +40,57 @@ function normalizeDisplayName(name: unknown): string {
   return trimmed.slice(0, 120);
 }
 
+function normalizeText(value: unknown, max = 120): string {
+  if (typeof value !== 'string') {
+    return '';
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return '';
+  }
+
+  return trimmed.slice(0, max);
+}
+
+function normalizeNumber(value: unknown, min: number, max: number, decimals = 4): number | null {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < min || value > max) {
+    return null;
+  }
+
+  const scale = 10 ** decimals;
+  return Math.round(value * scale) / scale;
+}
+
+function sanitizeClientLocation(raw: unknown) {
+  if (!raw || typeof raw !== 'object') {
+    return null;
+  }
+
+  const input = raw as Record<string, unknown>;
+  const permission = normalizeText(input.permission, 24) || 'unknown';
+  const timezone = normalizeText(input.timezone, 80);
+  const locale = normalizeText(input.locale, 32);
+  const latitude = normalizeNumber(input.latitude, -90, 90);
+  const longitude = normalizeNumber(input.longitude, -180, 180);
+  const accuracyMeters = normalizeNumber(input.accuracyMeters, 0, 100000, 0);
+  const capturedAtClient = typeof input.capturedAt === 'number' && Number.isFinite(input.capturedAt)
+    ? Math.round(input.capturedAt)
+    : null;
+
+  const location = {
+    permission,
+    ...(timezone ? { timezone } : {}),
+    ...(locale ? { locale } : {}),
+    ...(latitude !== null ? { latitude } : {}),
+    ...(longitude !== null ? { longitude } : {}),
+    ...(accuracyMeters !== null ? { accuracyMeters } : {}),
+    ...(capturedAtClient !== null ? { capturedAtClient } : {}),
+  };
+
+  return Object.keys(location).length > 0 ? location : null;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const contentType = req.headers.get('content-type') ?? '';
@@ -47,8 +98,9 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: 'Content-Type must be application/json' }, { status: 415 });
     }
 
-    const body = (await req.json()) as { idToken?: string };
+    const body = (await req.json()) as { idToken?: string; location?: unknown };
     const idToken = body.idToken;
+    const clientLocation = sanitizeClientLocation(body.location);
 
     if (!idToken || typeof idToken !== 'string' || idToken.length > MAX_ID_TOKEN_LENGTH) {
       return Response.json({ error: 'idToken is required' }, { status: 400 });
@@ -85,6 +137,12 @@ export async function POST(req: NextRequest) {
               : Boolean(data.emailVerified),
           primaryProvider: signInProvider,
           lastSeenAt: FieldValue.serverTimestamp(),
+          ...(clientLocation
+            ? {
+                lastKnownLocation: clientLocation,
+                lastKnownLocationCapturedAt: FieldValue.serverTimestamp(),
+              }
+            : {}),
         },
         { merge: true },
       );
@@ -104,6 +162,12 @@ export async function POST(req: NextRequest) {
         totalDemoSessions: 0,
         lastSessionDate: null,
         waitlisted: false,
+        ...(clientLocation
+          ? {
+              lastKnownLocation: clientLocation,
+              lastKnownLocationCapturedAt: FieldValue.serverTimestamp(),
+            }
+          : {}),
       });
     }
 
