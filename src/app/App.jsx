@@ -132,6 +132,9 @@ function AppProvider({ children }) {
     referral: '',
     profession: '',
     dob: '',
+    phone: '',
+    countryCode: '+91',
+    intent: '',
   });
 
   useEffect(() => {
@@ -537,12 +540,14 @@ function OnboardingPage({ push }) {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    const { name, referral, profession, dob } = onboardingData;
+    const { name, referral, profession, dob, phone, countryCode, intent } = onboardingData;
 
     if (!referral || !profession || !dob) {
-      setError('Please complete all onboarding fields.');
+      setError('Please complete all required fields.');
       return;
     }
+
+    const fullPhone = phone ? `${countryCode || '+91'}${phone}` : '';
 
     setLoading(true);
     setError('');
@@ -561,7 +566,9 @@ function OnboardingPage({ push }) {
           where_heard: referral,
           job_title: profession,
           dob,
-          use_case: '',
+          phone_number: fullPhone,
+          intent: intent || '',
+          use_case: intent || '',
           completed: true,
           completed_at: new Date().toISOString(),
         });
@@ -572,7 +579,7 @@ function OnboardingPage({ push }) {
           name: authUser?.displayName || name || '',
           displayName: authUser?.displayName || name || '',
           photoURL: authUser?.photoURL || '',
-          phoneNumber: authUser?.phoneNumber || '',
+          phoneNumber: fullPhone || authUser?.phoneNumber || '',
           emailVerified: Boolean(authUser?.emailVerified),
           providerIds,
           primaryProvider,
@@ -580,7 +587,9 @@ function OnboardingPage({ push }) {
           whereHeard: referral,
           jobTitle: profession,
           dob,
-          useCase: '',
+          phone_number: fullPhone,
+          intent: intent || '',
+          useCase: intent || '',
           onboardingCompleted: true,
           onboardingCompletedAt: serverTimestamp(),
           accountCreatedAtRaw: authUser?.metadata.creationTime || null,
@@ -606,6 +615,8 @@ function OnboardingPage({ push }) {
       source: referral,
       profession,
       dob,
+      phone_number: fullPhone,
+      intent: intent || '',
     });
     setLoading(false);
 
@@ -620,76 +631,226 @@ function OnboardingPage({ push }) {
 
   return (
     <main className="onboarding-page">
+      <div className="onboarding-bg-grid" aria-hidden="true" />
       <section className="onboarding-shell">
-        <div className="onboarding-progress">
-          <div className="onboarding-progress-row">
-            <span>Onboarding Progress</span>
-            <strong>33% Complete</strong>
+
+        <div className="onboarding-card">
+          <div className="onboarding-progress">
+            <div className="onboarding-progress-row">
+              <span>Profile Setup</span>
+              <strong>Step 2 of 3</strong>
+            </div>
+            <div className="onboarding-progress-bar">
+              <div className="onboarding-progress-fill" />
+            </div>
           </div>
-          <div className="onboarding-progress-bar">
-            <div className="onboarding-progress-fill" />
-          </div>
+
+          <header className="onboarding-header">
+            <div className="onboarding-header-badge">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+              Initialize Profile
+            </div>
+            <h2>Tell us about yourself</h2>
+            <p>This helps ADAM personalize your experience from the first interaction.</p>
+          </header>
+
+          <form className="onboarding-form" onSubmit={handleSubmit}>
+
+            {/* ── Discovery ── */}
+            <div className="onb-field-group">
+              <label className="onb-label" htmlFor="onb-referral">
+                <span className="onb-label-dot" aria-hidden="true" />
+                How did you hear about ADAM?
+                <span className="onb-required">*</span>
+              </label>
+              <div className="onb-select-wrap">
+                <select
+                  id="onb-referral"
+                  className="onboarding-input onboarding-select"
+                  value={onboardingData.referral}
+                  onChange={(e) => updateField('referral', e.target.value)}
+                  required
+                >
+                  <option value="">Select a source…</option>
+                  <option value="Instagram">Instagram</option>
+                  <option value="LinkedIn">LinkedIn</option>
+                  <option value="YouTube">YouTube</option>
+                  <option value="Twitter / X">Twitter / X</option>
+                  <option value="Facebook">Facebook</option>
+                  <option value="Google Search">Google Search</option>
+                  <option value="A Friend / Colleague">A Friend / Colleague</option>
+                  <option value="Tech Blog or Article">Tech Blog or Article</option>
+                  <option value="Product Hunt">Product Hunt</option>
+                  <option value="Hackathon / Event">Hackathon / Event</option>
+                  <option value="College / University">College / University</option>
+                  <option value="Other">Other</option>
+                </select>
+                <span className="onb-chevron" aria-hidden="true">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                </span>
+              </div>
+            </div>
+
+            {/* ── Profession ── */}
+            <div className="onb-field-group">
+              <label className="onb-label" htmlFor="onb-profession">
+                <span className="onb-label-dot" aria-hidden="true" />
+                Profession
+                <span className="onb-required">*</span>
+              </label>
+              <div className="onb-select-wrap">
+                <select
+                  id="onb-profession"
+                  className="onboarding-input onboarding-select"
+                  value={onboardingData.profession}
+                  onChange={(e) => updateField('profession', e.target.value)}
+                  required
+                >
+                  <option value="">Select your profession…</option>
+                  <option value="Software Engineer / Developer">Software Engineer / Developer</option>
+                  <option value="Product Manager">Product Manager</option>
+                  <option value="Data Scientist / ML Engineer">Data Scientist / ML Engineer</option>
+                  <option value="Student">Student</option>
+                  <option value="Entrepreneur / Founder">Entrepreneur / Founder</option>
+                  <option value="Designer (UI/UX / Graphic)">Designer (UI/UX / Graphic)</option>
+                  <option value="Marketing / Sales Professional">Marketing / Sales Professional</option>
+                  <option value="Researcher / Academic">Researcher / Academic</option>
+                  <option value="Business Analyst">Business Analyst</option>
+                  <option value="Hardware / Embedded Engineer">Hardware / Embedded Engineer</option>
+                  <option value="Finance / Banking Professional">Finance / Banking Professional</option>
+                  <option value="Healthcare Professional">Healthcare Professional</option>
+                  <option value="Content Creator">Content Creator</option>
+                  <option value="Operations / Logistics">Operations / Logistics</option>
+                  <option value="Other">Other</option>
+                </select>
+                <span className="onb-chevron" aria-hidden="true">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                </span>
+              </div>
+            </div>
+
+            {/* ── Date of Birth ── */}
+            <div className="onb-field-group">
+              <label className="onb-label" htmlFor="onb-dob">
+                <span className="onb-label-dot" aria-hidden="true" />
+                Date of Birth
+                <span className="onb-required">*</span>
+              </label>
+              <input
+                id="onb-dob"
+                className="onboarding-input"
+                type="date"
+                value={onboardingData.dob}
+                onChange={(e) => updateField('dob', e.target.value)}
+                required
+              />
+            </div>
+
+            {/* ── Section Divider ── */}
+            <div className="onb-separator">
+              <span>Contact Details</span>
+            </div>
+
+            {/* ── Phone ── */}
+            <div className="onb-field-group">
+              <label className="onb-label" htmlFor="onb-phone">
+                <span className="onb-label-dot" aria-hidden="true" />
+                Phone Number
+                <span className="onb-optional">(optional)</span>
+              </label>
+              <div className="onb-phone-row">
+                <div className="onb-select-wrap onb-country-wrap">
+                  <select
+                    className="onboarding-input onboarding-select onb-country-select"
+                    value={onboardingData.countryCode}
+                    onChange={(e) => updateField('countryCode', e.target.value)}
+                    aria-label="Country code"
+                  >
+                    <option value="+91">🇮🇳 +91</option>
+                    <option value="+1">🇺🇸 +1</option>
+                    <option value="+44">🇬🇧 +44</option>
+                    <option value="+61">🇦🇺 +61</option>
+                    <option value="+65">🇸🇬 +65</option>
+                    <option value="+971">🇦🇪 +971</option>
+                    <option value="+49">🇩🇪 +49</option>
+                    <option value="+33">🇫🇷 +33</option>
+                    <option value="+81">🇯🇵 +81</option>
+                    <option value="+86">🇨🇳 +86</option>
+                    <option value="+55">🇧🇷 +55</option>
+                    <option value="+52">🇲🇽 +52</option>
+                    <option value="+7">🇷🇺 +7</option>
+                  </select>
+                  <span className="onb-chevron" aria-hidden="true">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                  </span>
+                </div>
+                <input
+                  id="onb-phone"
+                  className="onboarding-input onb-phone-input"
+                  type="tel"
+                  placeholder="Phone number"
+                  value={onboardingData.phone}
+                  onChange={(e) => updateField('phone', e.target.value)}
+                  inputMode="tel"
+                  autoComplete="tel-national"
+                />
+              </div>
+            </div>
+
+            {/* ── Intent ── */}
+            <div className="onb-field-group">
+              <label className="onb-label" htmlFor="onb-intent">
+                <span className="onb-label-dot" aria-hidden="true" />
+                What will you use ADAM for?
+              </label>
+              <div className="onb-select-wrap">
+                <select
+                  id="onb-intent"
+                  className="onboarding-input onboarding-select"
+                  value={onboardingData.intent}
+                  onChange={(e) => updateField('intent', e.target.value)}
+                >
+                  <option value="">Select your primary use…</option>
+                  <option value="Personal Assistant">Personal Assistant</option>
+                  <option value="Research & Learning">Research &amp; Learning</option>
+                  <option value="Business / Work Automation">Business / Work Automation</option>
+                  <option value="Customer Support Demo">Customer Support Demo</option>
+                  <option value="Development / Testing">Development / Testing</option>
+                  <option value="Entertainment / Fun">Entertainment / Fun</option>
+                  <option value="Home Automation Research">Home Automation Research</option>
+                  <option value="Academic Project">Academic Project</option>
+                  <option value="Investor / Press Demo">Investor / Press Demo</option>
+                  <option value="Just exploring">Just exploring</option>
+                </select>
+                <span className="onb-chevron" aria-hidden="true">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                </span>
+              </div>
+            </div>
+
+            {error ? <p className="error-text dark">{error}</p> : null}
+
+            <div className="onboarding-actions">
+              <button className="onboarding-back" type="button" onClick={() => push('/')}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+                Back
+              </button>
+              <button className="btn-primary onboarding-next" type="submit" disabled={loading}>
+                {loading ? (
+                  <>
+                    <span className="onb-spinner" aria-hidden="true" />
+                    Initializing…
+                  </>
+                ) : (
+                  <>
+                    Initialize Profile
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
         </div>
-
-        <header className="onboarding-header">
-          <h2>Welcome to ADAM</h2>
-          <p>Tell us a little about yourself to initialize your profile.</p>
-        </header>
-
-        <form className="onboarding-form" onSubmit={handleSubmit}>
-          <div className="stack-sm">
-            <label htmlFor="onb-referral">How did you hear about ADAM?</label>
-            <select
-              id="onb-referral"
-              className="input-light onboarding-input"
-              value={onboardingData.referral}
-              onChange={(e) => updateField('referral', e.target.value)}
-              required
-            >
-              <option value="">Select an option</option>
-              <option value="Social Media">Social Media</option>
-              <option value="Professional Referral">Professional Referral</option>
-              <option value="Search Engine">Search Engine</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
-
-          <div className="stack-sm">
-            <label htmlFor="onb-profession">Profession</label>
-            <input
-              id="onb-profession"
-              className="input-light onboarding-input"
-              type="text"
-              placeholder="e.g. Software Engineer"
-              value={onboardingData.profession}
-              onChange={(e) => updateField('profession', e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="stack-sm">
-            <label htmlFor="onb-dob">Date of Birth</label>
-            <input
-              id="onb-dob"
-              className="input-light onboarding-input"
-              type="date"
-              value={onboardingData.dob}
-              onChange={(e) => updateField('dob', e.target.value)}
-              required
-            />
-          </div>
-
-          {error ? <p className="error-text dark">{error}</p> : null}
-
-          <div className="onboarding-actions">
-            <button className="onboarding-back" type="button" onClick={() => push('/')}>
-              Back
-            </button>
-            <button className="btn-primary onboarding-next" type="submit" disabled={loading}>
-              {loading ? 'Loading...' : 'Next'}
-            </button>
-          </div>
-        </form>
       </section>
     </main>
   );
@@ -2017,31 +2178,49 @@ export default function App() {
           flex-wrap: wrap;
         }
 
+        /* === ONBOARDING CSS === */
+
         .onboarding-page {
           min-height: 100vh;
           display: grid;
           place-items: center;
-          padding: 24px 16px;
-          background: #ffffff;
-          background-image: radial-gradient(circle at 50% 40%, #f9f9f9 0%, #f9f9f9 42%, rgba(204, 255, 0, 0.15) 72%, rgba(19, 19, 19, 0.05) 100%);
-          background-size: 200% 200%;
-          animation: gradientAnimation 15s ease infinite;
-          color: var(--text-charcoal);
+          padding: 32px 16px;
+          background: #f5f6f8;
+          color: #131313;
           position: relative;
           overflow: hidden;
         }
 
+        .onboarding-bg-grid {
+          position: fixed;
+          inset: 0;
+          background-image:
+            linear-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 0, 0, 0.03) 1px, transparent 1px);
+          background-size: 48px 48px;
+          pointer-events: none;
+          z-index: 0;
+        }
+
         .onboarding-shell {
           width: 100%;
-          max-width: 540px;
+          max-width: 560px;
           position: relative;
           z-index: 1;
-          padding: 8px 0;
-          pointer-events: auto;
+        }
+
+        .onboarding-card {
+          background: #ffffff;
+          border-radius: 20px;
+          padding: 36px 40px 40px;
+          box-shadow:
+            0 0 0 1px rgba(0,0,0,0.06),
+            0 8px 32px rgba(0,0,0,0.08),
+            0 2px 8px rgba(0,0,0,0.04);
         }
 
         .onboarding-progress {
-          margin-bottom: 36px;
+          margin-bottom: 28px;
         }
 
         .onboarding-progress-row {
@@ -2049,13 +2228,12 @@ export default function App() {
           align-items: center;
           justify-content: space-between;
           margin-bottom: 10px;
-          gap: 12px;
           font-family: 'Space Grotesk', sans-serif;
           font-size: 11px;
           font-weight: 600;
           letter-spacing: 0.12em;
           text-transform: uppercase;
-          color: rgba(19, 19, 19, 0.55);
+          color: rgba(19, 19, 19, 0.45);
         }
 
         .onboarding-progress-row strong {
@@ -2065,63 +2243,212 @@ export default function App() {
 
         .onboarding-progress-bar {
           width: 100%;
-          height: 4px;
+          height: 3px;
           border-radius: 999px;
-          background: #ececec;
+          background: #ebebeb;
           overflow: hidden;
         }
 
         .onboarding-progress-fill {
-          width: 33%;
+          width: 66%;
           height: 100%;
           border-radius: 999px;
-          background: var(--green-main);
-          box-shadow: 0 0 8px rgba(86, 224, 131, 0.35);
+          background: linear-gradient(90deg, var(--green-main), #38d88a);
+          box-shadow: 0 0 10px rgba(86, 224, 131, 0.5);
         }
 
         .onboarding-header {
           margin-bottom: 28px;
         }
 
+        .onboarding-header-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-family: 'Space Grotesk', sans-serif;
+          font-size: 10px;
+          font-weight: 700;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          color: var(--green-strong);
+          background: rgba(86, 224, 131, 0.1);
+          border: 1px solid rgba(86, 224, 131, 0.25);
+          border-radius: 999px;
+          padding: 4px 10px;
+          margin-bottom: 14px;
+        }
+
         .onboarding-header h2 {
           margin: 0 0 8px;
           font-family: 'Space Grotesk', sans-serif;
-          font-size: 22px;
-          line-height: 30px;
-          font-weight: 600;
-          letter-spacing: -0.01em;
+          font-size: 24px;
+          line-height: 32px;
+          font-weight: 700;
+          letter-spacing: -0.02em;
+          color: #0d0d0d;
         }
 
         .onboarding-header p {
           margin: 0;
           font-size: 14px;
           line-height: 22px;
-          color: rgba(19, 19, 19, 0.58);
+          color: rgba(19, 19, 19, 0.52);
         }
 
         .onboarding-form {
           display: grid;
-          gap: 24px;
+          gap: 20px;
+        }
+
+        .onb-field-group {
+          display: grid;
+          gap: 7px;
+        }
+
+        .onb-label {
+          display: flex;
+          align-items: center;
+          gap: 7px;
+          font-family: 'Space Grotesk', sans-serif;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          color: rgba(19, 19, 19, 0.6);
+        }
+
+        .onb-label-dot {
+          display: inline-block;
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: var(--green-main);
+          flex-shrink: 0;
+          box-shadow: 0 0 6px rgba(86, 224, 131, 0.7);
+        }
+
+        .onb-required {
+          color: var(--green-strong);
+          margin-left: 1px;
+          font-size: 13px;
+        }
+
+        .onb-optional {
+          font-weight: 400;
+          letter-spacing: 0.04em;
+          text-transform: none;
+          font-size: 10px;
+          color: rgba(19,19,19,0.35);
+          margin-left: 2px;
         }
 
         .onboarding-input {
-          min-height: 52px;
+          width: 100%;
+          height: 52px;
           border-radius: 10px;
-          background: #f4f4f4;
-          border-color: transparent;
-          padding: 14px 16px;
+          background: #f9f9f9;
+          border: 1px solid #e2e2e2;
+          padding: 0 16px;
           font-size: 14px;
-          box-shadow: none;
+          font-family: 'Space Grotesk', sans-serif;
+          color: #131313;
+          outline: none;
+          box-sizing: border-box;
+          transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+          appearance: none;
+          -webkit-appearance: none;
+        }
+
+        .onboarding-input:hover {
+          border-color: rgba(86, 224, 131, 0.45);
         }
 
         .onboarding-input:focus {
           border-color: var(--green-main);
-          box-shadow: 0 0 0 2px rgba(86, 224, 131, 0.2);
+          box-shadow: 0 0 0 3px rgba(86, 224, 131, 0.16);
           background: #ffffff;
         }
 
+        .onboarding-input::placeholder {
+          color: rgba(19,19,19,0.3);
+        }
+
+        .onboarding-select {
+          cursor: pointer;
+          padding-right: 38px;
+        }
+
+        .onb-select-wrap {
+          position: relative;
+          display: flex;
+          align-items: center;
+        }
+
+        .onb-chevron {
+          position: absolute;
+          right: 13px;
+          top: 50%;
+          transform: translateY(-50%);
+          display: flex;
+          align-items: center;
+          color: rgba(19,19,19,0.35);
+          pointer-events: none;
+        }
+
+        .onb-select-wrap .onboarding-input {
+          width: 100%;
+        }
+
+        /* Phone row */
+        .onb-phone-row {
+          display: flex;
+          gap: 10px;
+          align-items: stretch;
+        }
+
+        .onb-country-wrap {
+          flex-shrink: 0;
+          width: 108px;
+        }
+
+        .onb-country-select {
+          padding-left: 12px;
+          font-size: 13px;
+        }
+
+        .onb-phone-input {
+          flex: 1;
+        }
+
+        /* Section separator */
+        .onb-separator {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin: 4px 0;
+        }
+
+        .onb-separator::before,
+        .onb-separator::after {
+          content: '';
+          flex: 1;
+          height: 1px;
+          background: linear-gradient(90deg, transparent, rgba(86, 224, 131, 0.35), transparent);
+        }
+
+        .onb-separator span {
+          font-family: 'Space Grotesk', sans-serif;
+          font-size: 9px;
+          font-weight: 700;
+          letter-spacing: 0.18em;
+          text-transform: uppercase;
+          color: rgba(86, 224, 131, 0.75);
+          white-space: nowrap;
+        }
+
+        /* Actions */
         .onboarding-actions {
-          padding-top: 18px;
+          padding-top: 8px;
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -2129,6 +2456,9 @@ export default function App() {
         }
 
         .onboarding-back {
+          display: flex;
+          align-items: center;
+          gap: 5px;
           border: 0;
           background: transparent;
           color: rgba(19, 19, 19, 0.38);
@@ -2138,15 +2468,58 @@ export default function App() {
           letter-spacing: 0.03em;
           cursor: pointer;
           padding: 8px 0;
+          transition: color 160ms ease;
+        }
+
+        .onboarding-back:hover {
+          color: rgba(19,19,19,0.65);
         }
 
         .onboarding-next {
+          display: flex;
+          align-items: center;
+          gap: 7px;
           width: auto;
-          min-width: 132px;
-          padding: 12px 24px;
-          text-transform: uppercase;
-          letter-spacing: 0.14em;
-          box-shadow: 0 12px 24px rgba(86, 224, 131, 0.22);
+          min-width: 172px;
+          padding: 13px 24px;
+          font-size: 13px;
+          letter-spacing: 0.06em;
+          box-shadow: 0 8px 24px rgba(86, 224, 131, 0.28), 0 2px 8px rgba(86, 224, 131, 0.12);
+          justify-content: center;
+        }
+
+        .onb-spinner {
+          display: inline-block;
+          width: 13px;
+          height: 13px;
+          border: 2px solid rgba(255,255,255,0.3);
+          border-top-color: #ffffff;
+          border-radius: 50%;
+          animation: onb-spin 0.7s linear infinite;
+        }
+
+        @keyframes onb-spin {
+          to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 600px) {
+          .onboarding-card {
+            padding: 24px 20px 28px;
+            border-radius: 16px;
+          }
+          .onboarding-header h2 {
+            font-size: 20px;
+          }
+          .onb-country-wrap {
+            width: 96px;
+          }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .onboarding-progress-fill,
+          .onb-spinner {
+            animation: none;
+          }
         }
 
         .waitlist-page {
