@@ -523,6 +523,169 @@ function LoginPage({ push }) {
   );
 }
 
+const REFERRAL_OPTIONS = [
+  { value: 'Instagram', label: 'Instagram' },
+  { value: 'LinkedIn', label: 'LinkedIn' },
+  { value: 'YouTube', label: 'YouTube' },
+  { value: 'Twitter / X', label: 'X (formerly Twitter)' },
+  { value: 'Facebook', label: 'Facebook' },
+  { value: 'Google Search', label: 'Google Search' },
+  { value: 'A Friend / Colleague', label: 'Friend or Colleague' },
+  { value: 'Tech Blog or Article', label: 'Tech Blog or Article' },
+  { value: 'Product Hunt', label: 'Product Hunt' },
+  { value: 'Hackathon / Event', label: 'Hackathon or Event' },
+  { value: 'College / University', label: 'College or University' },
+  { value: 'Other', label: 'Other' },
+];
+
+const PROFESSION_OPTIONS = [
+  { value: 'Software Engineer / Developer', label: 'Software Engineer or Developer' },
+  { value: 'Product Manager', label: 'Product Manager' },
+  { value: 'Data Scientist / ML Engineer', label: 'Data Scientist or ML Engineer' },
+  { value: 'Student', label: 'Student' },
+  { value: 'Entrepreneur / Founder', label: 'Entrepreneur or Founder' },
+  { value: 'Designer (UI/UX / Graphic)', label: 'Designer (UI, UX, or Graphic)' },
+  { value: 'Marketing / Sales Professional', label: 'Marketing or Sales Professional' },
+  { value: 'Researcher / Academic', label: 'Researcher or Academic' },
+  { value: 'Business Analyst', label: 'Business Analyst' },
+  { value: 'Hardware / Embedded Engineer', label: 'Hardware or Embedded Engineer' },
+  { value: 'Finance / Banking Professional', label: 'Finance or Banking Professional' },
+  { value: 'Healthcare Professional', label: 'Healthcare Professional' },
+  { value: 'Content Creator', label: 'Content Creator' },
+  { value: 'Operations / Logistics', label: 'Operations or Logistics' },
+  { value: 'Other', label: 'Other' },
+];
+
+const INTENT_OPTIONS = [
+  { value: 'Personal Assistant', label: 'Personal Assistant' },
+  { value: 'Research & Learning', label: 'Research & Learning' },
+  { value: 'Business / Work Automation', label: 'Business or Workflow Automation' },
+  { value: 'Customer Support Demo', label: 'Customer Support Demo' },
+  { value: 'Development / Testing', label: 'Development or Testing' },
+  { value: 'Entertainment / Fun', label: 'Entertainment or Personal Use' },
+  { value: 'Home Automation Research', label: 'Home Automation Research' },
+  { value: 'Academic Project', label: 'Academic Project' },
+  { value: 'Investor / Press Demo', label: 'Investor or Press Demo' },
+  { value: 'Just exploring', label: 'Exploring ADAM' },
+];
+
+function CustomSelect({ id, value, onChange, options, placeholder, required, ariaLabel }) {
+  const [open, setOpen] = useState(false);
+  const [focusedIdx, setFocusedIdx] = useState(-1);
+  const wrapRef = useRef(null);
+  const listRef = useRef(null);
+  const btnRef = useRef(null);
+
+  const selectedOption = options.find((o) => o.value === value);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const handler = (e) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) {
+        setOpen(false);
+        setFocusedIdx(-1);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || focusedIdx < 0) return;
+    const items = listRef.current?.querySelectorAll('[role="option"]');
+    items?.[focusedIdx]?.scrollIntoView({ block: 'nearest' });
+  }, [focusedIdx, open]);
+
+  const handleOpen = () => {
+    const idx = options.findIndex((o) => o.value === value);
+    setFocusedIdx(idx >= 0 ? idx : 0);
+    setOpen(true);
+  };
+
+  const handleSelect = (optValue) => {
+    onChange({ target: { value: optValue } });
+    setOpen(false);
+    setFocusedIdx(-1);
+    btnRef.current?.focus();
+  };
+
+  const handleKeyDown = (e) => {
+    if (!open) {
+      if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        handleOpen();
+      }
+      return;
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setFocusedIdx((i) => Math.min(i + 1, options.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setFocusedIdx((i) => Math.max(i - 1, 0));
+    } else if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      if (focusedIdx >= 0) handleSelect(options[focusedIdx].value);
+    } else if (e.key === 'Escape' || e.key === 'Tab') {
+      setOpen(false);
+      setFocusedIdx(-1);
+    }
+  };
+
+  return (
+    <div className="csel-wrap" ref={wrapRef}>
+      <button
+        id={id}
+        ref={btnRef}
+        type="button"
+        role="combobox"
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        aria-controls={`${id}-list`}
+        aria-label={ariaLabel || placeholder}
+        aria-required={required}
+        className={`csel-trigger${!value ? ' placeholder' : ''}`}
+        onClick={() => (open ? setOpen(false) : handleOpen())}
+        onKeyDown={handleKeyDown}
+      >
+        <span className="csel-value">
+          {selectedOption ? selectedOption.label : placeholder}
+        </span>
+        <span className="csel-arrow" aria-hidden="true">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </span>
+      </button>
+      {open && (
+        <ul
+          id={`${id}-list`}
+          ref={listRef}
+          role="listbox"
+          aria-label={ariaLabel || placeholder}
+          className="csel-list"
+        >
+          {options.map((opt, idx) => (
+            <li
+              key={opt.value}
+              role="option"
+              aria-selected={value === opt.value}
+              className={`csel-item${value === opt.value ? ' selected' : ''}${focusedIdx === idx ? ' focused' : ''}`}
+              onMouseDown={(e) => { e.preventDefault(); handleSelect(opt.value); }}
+              onMouseEnter={() => setFocusedIdx(idx)}
+            >
+              {value === opt.value && (
+                <span className="csel-check" aria-hidden="true">✓</span>
+              )}
+              {opt.label}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function OnboardingPage({ push }) {
   const { userId, email, onboardingData, setOnboardingData, setOnboardingComplete } = useAppContext();
   const [loading, setLoading] = useState(false);
@@ -663,32 +826,14 @@ function OnboardingPage({ push }) {
                 How did you hear about ADAM?
                 <span className="onb-required">*</span>
               </label>
-              <div className="onb-select-wrap">
-                <select
-                  id="onb-referral"
-                  className="onboarding-input onboarding-select"
-                  value={onboardingData.referral}
-                  onChange={(e) => updateField('referral', e.target.value)}
-                  required
-                >
-                  <option value="">Select a source</option>
-                  <option value="Instagram">Instagram</option>
-                  <option value="LinkedIn">LinkedIn</option>
-                  <option value="YouTube">YouTube</option>
-                  <option value="Twitter / X">X (formerly Twitter)</option>
-                  <option value="Facebook">Facebook</option>
-                  <option value="Google Search">Google Search</option>
-                  <option value="A Friend / Colleague">Friend or Colleague</option>
-                  <option value="Tech Blog or Article">Tech Blog or Article</option>
-                  <option value="Product Hunt">Product Hunt</option>
-                  <option value="Hackathon / Event">Hackathon or Event</option>
-                  <option value="College / University">College or University</option>
-                  <option value="Other">Other</option>
-                </select>
-                <span className="onb-chevron" aria-hidden="true">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-                </span>
-              </div>
+              <CustomSelect
+                id="onb-referral"
+                value={onboardingData.referral}
+                onChange={(e) => updateField('referral', e.target.value)}
+                placeholder="Select a source"
+                options={REFERRAL_OPTIONS}
+                required
+              />
             </div>
 
             {/* ── Profession ── */}
@@ -698,35 +843,14 @@ function OnboardingPage({ push }) {
                 Profession
                 <span className="onb-required">*</span>
               </label>
-              <div className="onb-select-wrap">
-                <select
-                  id="onb-profession"
-                  className="onboarding-input onboarding-select"
-                  value={onboardingData.profession}
-                  onChange={(e) => updateField('profession', e.target.value)}
-                  required
-                >
-                  <option value="">Select your profession</option>
-                  <option value="Software Engineer / Developer">Software Engineer or Developer</option>
-                  <option value="Product Manager">Product Manager</option>
-                  <option value="Data Scientist / ML Engineer">Data Scientist or ML Engineer</option>
-                  <option value="Student">Student</option>
-                  <option value="Entrepreneur / Founder">Entrepreneur or Founder</option>
-                  <option value="Designer (UI/UX / Graphic)">Designer (UI, UX, or Graphic)</option>
-                  <option value="Marketing / Sales Professional">Marketing or Sales Professional</option>
-                  <option value="Researcher / Academic">Researcher or Academic</option>
-                  <option value="Business Analyst">Business Analyst</option>
-                  <option value="Hardware / Embedded Engineer">Hardware or Embedded Engineer</option>
-                  <option value="Finance / Banking Professional">Finance or Banking Professional</option>
-                  <option value="Healthcare Professional">Healthcare Professional</option>
-                  <option value="Content Creator">Content Creator</option>
-                  <option value="Operations / Logistics">Operations or Logistics</option>
-                  <option value="Other">Other</option>
-                </select>
-                <span className="onb-chevron" aria-hidden="true">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-                </span>
-              </div>
+              <CustomSelect
+                id="onb-profession"
+                value={onboardingData.profession}
+                onChange={(e) => updateField('profession', e.target.value)}
+                placeholder="Select your profession"
+                options={PROFESSION_OPTIONS}
+                required
+              />
             </div>
 
             {/* ── Date of Birth ── */}
@@ -766,19 +890,19 @@ function OnboardingPage({ push }) {
                     onChange={(e) => updateField('countryCode', e.target.value)}
                     aria-label="Country code"
                   >
-                    <option value="+91">India (+91)</option>
-                    <option value="+1">United States (+1)</option>
-                    <option value="+44">United Kingdom (+44)</option>
-                    <option value="+61">Australia (+61)</option>
-                    <option value="+65">Singapore (+65)</option>
-                    <option value="+971">UAE (+971)</option>
-                    <option value="+49">Germany (+49)</option>
-                    <option value="+33">France (+33)</option>
-                    <option value="+81">Japan (+81)</option>
-                    <option value="+86">China (+86)</option>
-                    <option value="+55">Brazil (+55)</option>
-                    <option value="+52">Mexico (+52)</option>
-                    <option value="+7">Russia (+7)</option>
+                    <option value="+91">🇮🇳 +91</option>
+                    <option value="+1">🇺🇸 +1</option>
+                    <option value="+44">🇬🇧 +44</option>
+                    <option value="+61">🇦🇺 +61</option>
+                    <option value="+65">🇸🇬 +65</option>
+                    <option value="+971">🇦🇪 +971</option>
+                    <option value="+49">🇩🇪 +49</option>
+                    <option value="+33">🇫🇷 +33</option>
+                    <option value="+81">🇯🇵 +81</option>
+                    <option value="+86">🇨🇳 +86</option>
+                    <option value="+55">🇧🇷 +55</option>
+                    <option value="+52">🇲🇽 +52</option>
+                    <option value="+7">🇷🇺 +7</option>
                   </select>
                   <span className="onb-chevron" aria-hidden="true">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
@@ -803,29 +927,13 @@ function OnboardingPage({ push }) {
                 <span className="onb-label-dot" aria-hidden="true" />
                 What will you use ADAM for?
               </label>
-              <div className="onb-select-wrap">
-                <select
-                  id="onb-intent"
-                  className="onboarding-input onboarding-select"
-                  value={onboardingData.intent}
-                  onChange={(e) => updateField('intent', e.target.value)}
-                >
-                  <option value="">Select your primary use</option>
-                  <option value="Personal Assistant">Personal Assistant</option>
-                  <option value="Research & Learning">Research &amp; Learning</option>
-                  <option value="Business / Work Automation">Business or Workflow Automation</option>
-                  <option value="Customer Support Demo">Customer Support Demo</option>
-                  <option value="Development / Testing">Development or Testing</option>
-                  <option value="Entertainment / Fun">Entertainment or Personal Use</option>
-                  <option value="Home Automation Research">Home Automation Research</option>
-                  <option value="Academic Project">Academic Project</option>
-                  <option value="Investor / Press Demo">Investor or Press Demo</option>
-                  <option value="Just exploring">Exploring ADAM</option>
-                </select>
-                <span className="onb-chevron" aria-hidden="true">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-                </span>
-              </div>
+              <CustomSelect
+                id="onb-intent"
+                value={onboardingData.intent}
+                onChange={(e) => updateField('intent', e.target.value)}
+                placeholder="Select your primary use"
+                options={INTENT_OPTIONS}
+              />
             </div>
 
             {error ? <p className="error-text dark">{error}</p> : null}
@@ -1262,7 +1370,6 @@ function DemoPage({ push }) {
           setStartedAt(Date.now());
           setSessionState('active');
           setIsRecording(micPermission === 'granted');
-          pushSystemTranscript('Session online. You can start speaking now.');
           return;
         }
 
@@ -1468,13 +1575,6 @@ function DemoPage({ push }) {
                   </div>
                   <div className={`console-message-bubble ${message.tone} ${message.typing ? 'typing' : ''}`}>
                     {message.text}
-                    {message.typing ? (
-                      <div className="console-thinking-dots" aria-hidden="true">
-                        <span />
-                        <span />
-                        <span />
-                      </div>
-                    ) : null}
                   </div>
                 </div>
               ))}
@@ -2504,7 +2604,7 @@ export default function App() {
 
         .onb-country-wrap {
           flex-shrink: 0;
-          width: 108px;
+          width: 90px;
         }
 
         .onb-country-select {
@@ -3645,39 +3745,6 @@ export default function App() {
           position: relative;
         }
 
-        .console-message-bubble.adam.typing::after {
-          content: '';
-          display: inline-block;
-          width: 6px;
-          height: 1em;
-          margin-left: 3px;
-          border-right: 2px solid rgba(25, 179, 92, 0.95);
-          vertical-align: -0.15em;
-          animation: typingBlink 0.9s steps(1) infinite;
-        }
-
-        .console-thinking-dots {
-          display: flex;
-          gap: 4px;
-          margin-top: 12px;
-        }
-
-        .console-thinking-dots span {
-          width: 6px;
-          height: 6px;
-          border-radius: 999px;
-          background: var(--primary);
-          animation: wave 1.2s infinite ease-in-out;
-        }
-
-        .console-thinking-dots span:nth-child(2) { animation-delay: 0.1s; }
-        .console-thinking-dots span:nth-child(3) { animation-delay: 0.2s; }
-
-        @keyframes typingBlink {
-          0%, 49% { opacity: 1; }
-          50%, 100% { opacity: 0; }
-        }
-
         .demo-connecting-overlay {
           position: fixed;
           inset: 0;
@@ -4132,6 +4199,170 @@ export default function App() {
           .onboarding-actions {
             padding-top: 8px;
           }
+        }
+
+        /* === CUSTOM SELECT (csel) === */
+        .csel-wrap {
+          position: relative;
+          isolation: isolate;
+          border-radius: 10px;
+        }
+
+        .csel-trigger {
+          width: 100%;
+          height: 52px;
+          border-radius: 10px;
+          background: linear-gradient(180deg, #ffffff 0%, #f6f8f6 100%);
+          border: 1px solid #d8ded8;
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.9), 0 1px 2px rgba(10,26,14,0.06);
+          padding: 0 44px 0 16px;
+          font-size: 14px;
+          font-family: 'Space Grotesk', sans-serif;
+          font-weight: 500;
+          color: #131313;
+          letter-spacing: 0.015em;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          text-align: left;
+          outline: none;
+          transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+          box-sizing: border-box;
+          position: relative;
+        }
+
+        .csel-trigger.placeholder .csel-value {
+          color: rgba(19,19,19,0.44);
+          font-weight: 500;
+        }
+
+        .csel-trigger:hover {
+          border-color: rgba(58,165,97,0.58);
+          background: linear-gradient(180deg, #ffffff 0%, #f4f8f4 100%);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.92), 0 4px 10px rgba(20,54,30,0.08);
+        }
+
+        .csel-trigger:focus,
+        .csel-trigger[aria-expanded="true"] {
+          border-color: var(--green-main);
+          background: #ffffff;
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.95), 0 0 0 3px rgba(86,224,131,0.18), 0 8px 16px rgba(22,58,33,0.1);
+        }
+
+        .csel-value {
+          flex: 1;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          pointer-events: none;
+        }
+
+        .csel-arrow {
+          position: absolute;
+          right: 10px;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 24px;
+          height: 24px;
+          border-radius: 999px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: rgba(19,19,19,0.58);
+          background: linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(241,245,241,0.95) 100%);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.95), 0 1px 2px rgba(0,0,0,0.08);
+          pointer-events: none;
+          transition: transform 160ms ease, color 160ms ease, box-shadow 160ms ease;
+          flex-shrink: 0;
+        }
+
+        .csel-trigger[aria-expanded="true"] .csel-arrow {
+          transform: translateY(-50%) rotate(180deg);
+          color: var(--green-strong);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,1), 0 0 0 2px rgba(86,224,131,0.18), 0 4px 10px rgba(20,54,30,0.14);
+        }
+
+        .csel-list {
+          position: absolute;
+          top: calc(100% + 6px);
+          left: 0;
+          right: 0;
+          z-index: 200;
+          background: #111111;
+          border: 1px solid rgba(86,224,131,0.2);
+          border-radius: 12px;
+          padding: 6px;
+          margin: 0;
+          list-style: none;
+          max-height: 260px;
+          overflow-y: auto;
+          box-shadow:
+            0 4px 6px rgba(0,0,0,0.06),
+            0 10px 40px rgba(0,0,0,0.55),
+            0 0 0 1px rgba(255,255,255,0.04),
+            inset 0 1px 0 rgba(255,255,255,0.05);
+          animation: cselOpen 140ms cubic-bezier(0.2,0,0,1) both;
+          scrollbar-width: thin;
+          scrollbar-color: rgba(86,224,131,0.2) transparent;
+        }
+
+        .csel-list::-webkit-scrollbar { width: 4px; }
+        .csel-list::-webkit-scrollbar-track { background: transparent; }
+        .csel-list::-webkit-scrollbar-thumb {
+          background: rgba(86,224,131,0.22);
+          border-radius: 999px;
+        }
+
+        @keyframes cselOpen {
+          from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .csel-item {
+          position: relative;
+          display: flex;
+          align-items: center;
+          padding: 9px 12px 9px 32px;
+          border-radius: 8px;
+          font-family: 'Space Grotesk', sans-serif;
+          font-size: 14px;
+          font-weight: 500;
+          letter-spacing: 0.01em;
+          color: rgba(240,240,240,0.82);
+          cursor: pointer;
+          transition: background 90ms ease, color 90ms ease;
+          user-select: none;
+          list-style: none;
+        }
+
+        .csel-item:hover,
+        .csel-item.focused {
+          background: rgba(86,224,131,0.12);
+          color: #56e083;
+        }
+
+        .csel-item.selected {
+          color: #56e083;
+          font-weight: 600;
+        }
+
+        .csel-item.selected:hover,
+        .csel-item.selected.focused {
+          background: rgba(86,224,131,0.15);
+        }
+
+        .csel-check {
+          position: absolute;
+          left: 12px;
+          color: #56e083;
+          font-size: 12px;
+          font-weight: 700;
+          line-height: 1;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .csel-list { animation: none; }
         }
       `}</style>
       <AppProvider>
