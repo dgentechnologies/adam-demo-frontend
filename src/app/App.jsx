@@ -1132,6 +1132,7 @@ function DemoPage({ push }) {
   const { userId, authToken, onboardingData } = useAppContext();
   const RELAY_URL = process.env.NEXT_PUBLIC_RELAY_URL || '';
   const [welcomeOpen, setWelcomeOpen] = useState(true);
+  const [conversationOpen, setConversationOpen] = useState(false);
   const [sessionState, setSessionState] = useState('idle');
   const [timeLeft, setTimeLeft] = useState(300);
   const [endOpen, setEndOpen] = useState(false);
@@ -1676,61 +1677,76 @@ function DemoPage({ push }) {
       </header>
 
       <main className={`demo-console-shell ${welcomeOpen ? 'blurred' : ''}`}>
-        <aside className="demo-console-chat">
-          <section className="console-chat-premium">
-            <div className="console-chat-head">
-              <div className="header-brand chat-brand">
-                <MessageCircle className="chat-icon" size={20} strokeWidth={2.2} aria-hidden="true" />
-                <div>
-                  <h3>Live Conversation</h3>
-                  <p>Real-time transcript</p>
-                </div>
+      </main>
+
+      <button
+        type="button"
+        className="demo-conversation-toggle"
+        aria-expanded={conversationOpen}
+        aria-controls="demo-conversation-drawer"
+        onClick={() => setConversationOpen((previous) => !previous)}
+      >
+        {conversationOpen ? 'Hide conversation' : 'Show conversation'}
+      </button>
+
+      <aside
+        id="demo-conversation-drawer"
+        className={`demo-conversation-drawer ${conversationOpen ? 'open' : ''}`}
+        aria-hidden={!conversationOpen}
+      >
+        <section className="console-chat-premium">
+          <div className="console-chat-head">
+            <div className="header-brand chat-brand">
+              <MessageCircle className="chat-icon" size={20} strokeWidth={2.2} aria-hidden="true" />
+              <div>
+                <h3>Live Conversation</h3>
+                <p>Real-time transcript</p>
               </div>
             </div>
+          </div>
 
-            <div className="console-chat-stream scroll-hide" ref={transcriptRef}>
-              {transcript.length === 0 ? (
-                <div className="console-message adam">
-                  <div className="console-message-meta">
-                    <span className="console-message-speaker adam">ADAM</span>
-                    <span>Live</span>
-                  </div>
-                  <div className="console-message-bubble adam">
-                    {sessionState === 'active'
-                      ? 'I am listening. Say hello to begin.'
-                      : 'Session is preparing. Start the live session to begin.'}
-                  </div>
+          <div className="console-chat-stream scroll-hide" ref={transcriptRef}>
+            {transcript.length === 0 ? (
+              <div className="console-message adam">
+                <div className="console-message-meta">
+                  <span className="console-message-speaker adam">ADAM</span>
+                  <span>Live</span>
                 </div>
-              ) : null}
-              {transcript.map((message) => (
-                <div
-                  key={`${message.speaker}-${message.time}-${message.text.slice(0, 12)}`}
-                  className={`console-message ${message.tone}`}
-                >
-                  <div className="console-message-meta">
-                    <span className={`console-message-speaker ${message.tone}`}>{message.speaker}</span>
-                    <span>{message.time}</span>
-                  </div>
-                  <div className={`console-message-bubble ${message.tone} ${message.typing ? 'typing' : ''}`}>
-                    {message.text}
-                  </div>
+                <div className="console-message-bubble adam">
+                  {sessionState === 'active'
+                    ? 'I am listening. Say hello to begin.'
+                    : 'Session is preparing. Start the live session to begin.'}
                 </div>
-              ))}
-            </div>
+              </div>
+            ) : null}
+            {transcript.map((message) => (
+              <div
+                key={`${message.speaker}-${message.time}-${message.text.slice(0, 12)}`}
+                className={`console-message ${message.tone}`}
+              >
+                <div className="console-message-meta">
+                  <span className={`console-message-speaker ${message.tone}`}>{message.speaker}</span>
+                  <span>{message.time}</span>
+                </div>
+                <div className={`console-message-bubble ${message.tone} ${message.typing ? 'typing' : ''}`}>
+                  {message.text}
+                </div>
+              </div>
+            ))}
+          </div>
 
-            <div className="demo-session-meta">
-              <span>
-                Turns: {turnCount}/{turnsAllowed}
-              </span>
-              <span>
-                Mic: {micPermission === 'granted' ? (isRecording ? 'Listening' : adamSpeaking ? 'Paused while ADAM speaks' : 'Ready') : micPermission === 'denied' ? 'Blocked' : 'Requesting'}
-              </span>
-            </div>
+          <div className="demo-session-meta">
+            <span>
+              Turns: {turnCount}/{turnsAllowed}
+            </span>
+            <span>
+              Mic: {micPermission === 'granted' ? (isRecording ? 'Listening' : adamSpeaking ? 'Paused while ADAM speaks' : 'Ready') : micPermission === 'denied' ? 'Blocked' : 'Requesting'}
+            </span>
+          </div>
 
-            {errorMsg ? <p className="error-text dark">{errorMsg}</p> : null}
-          </section>
-        </aside>
-      </main>
+          {errorMsg ? <p className="error-text dark">{errorMsg}</p> : null}
+        </section>
+      </aside>
 
       {welcomeOpen ? (
         <div className="demo-welcome-overlay show">
@@ -3393,6 +3409,54 @@ export default function App() {
           overflow: hidden;
         }
 
+        .demo-conversation-toggle {
+          position: fixed;
+          left: 50%;
+          bottom: 16px;
+          transform: translateX(-50%);
+          z-index: 24;
+          border: 1px solid rgba(18, 20, 16, 0.14);
+          background: rgba(255, 255, 255, 0.7);
+          color: #181c1e;
+          border-radius: 999px;
+          padding: 10px 16px;
+          font-size: 12px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 160ms ease;
+        }
+
+        .demo-conversation-toggle:hover {
+          border-color: rgba(25, 179, 92, 0.4);
+          color: #125f32;
+        }
+
+        .demo-conversation-drawer {
+          position: fixed;
+          left: 24px;
+          right: 24px;
+          bottom: 56px;
+          z-index: 23;
+          max-width: 420px;
+          margin-left: auto;
+          transform: translateY(calc(100% + 32px));
+          opacity: 0;
+          pointer-events: none;
+          transition: transform 200ms ease, opacity 200ms ease;
+          max-height: min(62vh, 520px);
+          min-height: 260px;
+        }
+
+        .demo-conversation-drawer.open {
+          transform: translateY(0);
+          opacity: 1;
+          pointer-events: auto;
+        }
+
+        .demo-conversation-drawer .console-chat-premium {
+          height: 100%;
+        }
+
         .demo-console-shell.blurred {
           filter: blur(14px);
           transform: scale(1.01);
@@ -4071,9 +4135,21 @@ export default function App() {
           .demo-console-shell {
             padding-bottom: 24px;
           }
+
+          .demo-conversation-drawer {
+            left: 16px;
+            right: 16px;
+            max-width: none;
+            min-height: 240px;
+          }
         }
 
         @media (max-width: 760px) {
+          .demo-console-page {
+            background-position: 50% 50%;
+            background-attachment: scroll;
+          }
+
           .demo-console-topbar {
             padding: 0 16px;
           }
@@ -4098,6 +4174,23 @@ export default function App() {
 
           .demo-hero-waveform {
             justify-content: flex-start;
+          }
+
+          .demo-conversation-toggle {
+            bottom: 12px;
+            width: calc(100% - 32px);
+            text-align: center;
+          }
+
+          .demo-conversation-drawer {
+            left: 12px;
+            right: 12px;
+            bottom: 58px;
+            max-height: min(58vh, 500px);
+          }
+
+          .demo-conversation-drawer .console-chat-premium {
+            border-radius: 16px;
           }
         }
 
