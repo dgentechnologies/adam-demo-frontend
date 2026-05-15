@@ -1414,7 +1414,7 @@ function DemoPage({ push }) {
 
   useEffect(() => {
     transcriptRef.current?.scrollTo({ top: transcriptRef.current.scrollHeight, behavior: 'smooth' });
-  }, [transcript]);
+  }, [transcript, conversationOpen]);
 
   useEffect(() => {
     const onBeforeUnload = () => {
@@ -3443,8 +3443,11 @@ export default function App() {
           opacity: 0;
           pointer-events: none;
           transition: transform 200ms ease, opacity 200ms ease;
+          height: min(62vh, 520px);
           max-height: min(62vh, 520px);
           min-height: 260px;
+          display: flex;
+          flex-direction: column;
         }
 
         .demo-conversation-drawer.open {
@@ -3455,6 +3458,8 @@ export default function App() {
 
         .demo-conversation-drawer .console-chat-premium {
           height: 100%;
+          flex: 1;
+          min-height: 0;
         }
 
         .demo-console-shell.blurred {
@@ -4146,7 +4151,7 @@ export default function App() {
 
         @media (max-width: 760px) {
           .demo-console-page {
-            background-position: 50% 50%;
+            background-position: 60% 50%;
             background-attachment: scroll;
           }
 
@@ -4186,6 +4191,7 @@ export default function App() {
             left: 12px;
             right: 12px;
             bottom: 58px;
+            height: min(58vh, 500px);
             max-height: min(58vh, 500px);
           }
 
