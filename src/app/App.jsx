@@ -4151,7 +4151,7 @@ export default function App() {
 
         @media (max-width: 760px) {
           .demo-console-page {
-            background-position: 40% 50%;
+            background-position: 35% 50%;
             background-attachment: scroll;
           }
 
