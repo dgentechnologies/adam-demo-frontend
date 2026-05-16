@@ -1436,6 +1436,11 @@ const BG2_FACE_RECT = {
   h: 128 / 940,
 };
 
+const BG2_NATIVE = {
+  width: 1672,
+  height: 940,
+};
+
 function mapRelayEmotionToFileName(value) {
   const emotion = String(value || '').trim().toLowerCase();
 
@@ -1549,7 +1554,6 @@ function DemoPage({ push }) {
   const speechEndTimerRef = useRef(null);
   const mouthSyncTimerRef = useRef(null);
   const faceAreaRef = useRef(null);
-  const bgImageRef = useRef(null);
   const emotionIframeRef = useRef(null);
 
   const visibleEmotion = adamSpeaking || mouthSyncActive ? 'speeking' : baseEmotion;
@@ -1597,15 +1601,14 @@ function DemoPage({ push }) {
 
   const updateEmotionLayerPosition = () => {
     const container = faceAreaRef.current;
-    const bg = bgImageRef.current;
-    if (!container || !bg || !bg.naturalWidth || !bg.naturalHeight) {
+    if (!container) {
       return;
     }
 
     const cw = container.clientWidth;
     const ch = container.clientHeight;
-    const nw = bg.naturalWidth;
-    const nh = bg.naturalHeight;
+    const nw = BG2_NATIVE.width;
+    const nh = BG2_NATIVE.height;
 
     // Keep overlay locked to bg2.png face location under object-fit: cover.
     const scale = Math.max(cw / nw, ch / nh);
@@ -1700,17 +1703,12 @@ svg {
   }, [visibleEmotion]);
 
   useEffect(() => {
-    const bg = bgImageRef.current;
     const container = faceAreaRef.current;
-    if (!bg || !container) {
+    if (!container) {
       return undefined;
     }
 
-    if (bg.complete) {
-      updateEmotionLayerPosition();
-    }
-
-    bg.addEventListener('load', updateEmotionLayerPosition);
+    updateEmotionLayerPosition();
     window.addEventListener('resize', updateEmotionLayerPosition);
 
     let resizeObserver;
@@ -1720,7 +1718,6 @@ svg {
     }
 
     return () => {
-      bg.removeEventListener('load', updateEmotionLayerPosition);
       window.removeEventListener('resize', updateEmotionLayerPosition);
       if (resizeObserver) {
         resizeObserver.disconnect();
@@ -2227,7 +2224,19 @@ svg {
 
   return (
     <main className="demo-console-page">
-      <div className="demo-console-bg" aria-hidden="true" />
+      <div ref={faceAreaRef} className="demo-console-bg" aria-hidden="true">
+        <div className="demo-face-emotion-layer" style={emotionLayerStyle}>
+          <iframe
+            ref={emotionIframeRef}
+            key={visibleEmotion}
+            src={`/emotions/${visibleEmotion}.html`}
+            className="demo-face-emotion-iframe"
+            title={`${visibleEmotion} emotion`}
+            scrolling="no"
+            sandbox="allow-same-origin allow-scripts"
+          />
+        </div>
+      </div>
       <div className="demo-console-overlay" aria-hidden="true" />
 
       <header className="demo-console-topbar">
@@ -2250,54 +2259,6 @@ svg {
       </header>
 
       <main className={`demo-console-shell ${welcomeOpen ? 'blurred' : ''}`}>
-        <section className="demo-console-center" aria-label="ADAM visual stage">
-          <article className="demo-hero-panel">
-            <div ref={faceAreaRef} className="demo-face-area">
-              <img
-                ref={bgImageRef}
-                src="/images/bg2.png"
-                alt="ADAM demo background"
-                className="demo-face-bg"
-              />
-
-              <div className="demo-face-emotion-layer" style={emotionLayerStyle}>
-                <iframe
-                  ref={emotionIframeRef}
-                  key={visibleEmotion}
-                  src={`/emotions/${visibleEmotion}.html`}
-                  className="demo-face-emotion-iframe"
-                  title={`${visibleEmotion} emotion`}
-                  scrolling="no"
-                  sandbox="allow-same-origin allow-scripts"
-                />
-              </div>
-            </div>
-
-            <div className="demo-hero-bottom-bar">
-              <div>
-                <div className="demo-hero-label">ADAM State</div>
-                <div className="demo-hero-value">
-                  {adamSpeaking
-                    ? 'Speaking'
-                    : isRecording
-                      ? 'Listening'
-                      : sessionState === 'active'
-                        ? 'Ready'
-                        : 'Standby'}
-                </div>
-              </div>
-
-              <div className="demo-hero-waveform" style={{ opacity: adamSpeaking ? 1 : 0.35 }} aria-hidden="true">
-                <span />
-                <span />
-                <span />
-                <span />
-                <span />
-                <span />
-              </div>
-            </div>
-          </article>
-        </section>
       </main>
 
       {isMobileConversationView ? (
@@ -4294,7 +4255,7 @@ export default function App() {
           overflow: hidden;
           color: #181c1e;
           background: #d7dadd;
-          background-image: url('/images/bg.png');
+          background-image: url('/images/bg2.png');
           background-size: cover;
           background-position: center center;
           background-attachment: fixed;
