@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
       if (Object.keys(updateData).length > 0) {
         await existingDoc.ref.update(updateData);
       }
-      return Response.json({ success: true, alreadyRegistered: true });
+      return Response.json({ success: true, alreadyRegistered: true, alreadyFilled: true });
     }
 
     await collectionRef.add({

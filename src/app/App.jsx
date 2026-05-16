@@ -3,13 +3,15 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ArrowRight, Mail, MessageCircle, User, X } from 'lucide-react';
-import { createUserWithEmailAndPassword, onAuthStateChanged, signInWithPopup, updateProfile } from 'firebase/auth';
+import { isSignInWithEmailLink, onAuthStateChanged, sendSignInLinkToEmail, signInWithEmailLink, signInWithPopup } from 'firebase/auth';
 import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { getClientAuth, getClientDb, googleProvider, isFirebaseConfigured } from '@/lib/firebase';
 
 const MOCK_DELAY_MS = 400;
 let mockFetchInstalled = false;
 const FIREBASE_ENABLED = isFirebaseConfigured();
+const PENDING_EMAIL_KEY = 'adam:pending-email';
+const EMAIL_LINK_MODE = 'verify-email';
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -50,6 +52,20 @@ async function mockFetch(url, options = {}) {
     return createMockFetchResponse(200, { status: 'ended', sessionId: 'sess_001' });
   }
 
+  if (method === 'POST' && url === '/api/account-status') {
+    return createMockFetchResponse(200, {
+      emailVerified: true,
+      demoUsed: false,
+      waitlistFilled: false,
+      tester: false,
+      onboardingComplete: false,
+    });
+  }
+
+  if (method === 'POST' && url === '/api/email-link/send') {
+    return createMockFetchResponse(200, { success: true });
+  }
+
   return createMockFetchResponse(404, { error: 'Not found' });
 }
 
@@ -59,7 +75,7 @@ function installMockFetch() {
   }
 
   const nativeFetch = typeof globalThis.fetch === 'function' ? globalThis.fetch.bind(globalThis) : null;
-  const mockedApiPaths = new Set(['/api/auth/login', '/api/onboarding', '/api/demo/start', '/api/demo/end']);
+  const mockedApiPaths = new Set(['/api/auth/login', '/api/onboarding', '/api/demo/start', '/api/demo/end', '/api/account-status', '/api/email-link/send']);
 
   globalThis.fetch = async (input, init) => {
     const url = typeof input === 'string' ? input : input.url;
@@ -107,6 +123,67 @@ async function apiWaitlist(payload) {
   } catch (_error) {
     return { ok: true, status: 200, data: { success: true, mocked: true } };
   }
+}
+
+async function apiAccountStatus(payload) {
+  try {
+    return await postJSON('/api/account-status', payload);
+  } catch (_error) {
+    return {
+      ok: true,
+      status: 200,
+      data: {
+        emailVerified: true,
+        demoUsed: false,
+        waitlistFilled: false,
+        tester: false,
+        onboardingComplete: false,
+      },
+    };
+  }
+}
+
+async function apiSendEmailLink(payload) {
+  try {
+    return await postJSON('/api/email-link/send', payload);
+  } catch (_error) {
+    return { ok: true, status: 200, data: { success: true } };
+  }
+}
+
+function readPendingEmail() {
+  if (typeof window === 'undefined') {
+    return '';
+  }
+
+  return window.localStorage.getItem(PENDING_EMAIL_KEY) || '';
+}
+
+function savePendingEmail(email) {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.localStorage.setItem(PENDING_EMAIL_KEY, email);
+}
+
+function clearPendingEmail() {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.localStorage.removeItem(PENDING_EMAIL_KEY);
+}
+
+function buildEmailActionUrl() {
+  if (typeof window === 'undefined') {
+    return '/';
+  }
+
+  const url = new URL(window.location.href);
+  url.search = '';
+  url.hash = `#/${EMAIL_LINK_MODE}`;
+  return url.toString();
 }
 
 async function getOnboardingRecord(uid) {
@@ -195,8 +272,17 @@ function AppProvider({ children }) {
   const [authToken, setAuthToken] = useState('');
   const [userId, setUserId] = useState('');
   const [email, setEmail] = useState('');
+  const [pendingEmail, setPendingEmailState] = useState(() => readPendingEmail());
   const [authReady, setAuthReady] = useState(!FIREBASE_ENABLED);
   const [onboardingComplete, setOnboardingComplete] = useState(false);
+  const [accountStatus, setAccountStatus] = useState({
+    loaded: !FIREBASE_ENABLED,
+    emailVerified: false,
+    demoUsed: false,
+    waitlistFilled: false,
+    tester: false,
+    onboardingComplete: false,
+  });
   const [onboardingData, setOnboardingData] = useState({
     name: '',
     role: '',
@@ -219,18 +305,41 @@ function AppProvider({ children }) {
         setAuthToken('');
         setUserId('');
         setEmail('');
+        setPendingEmailState(readPendingEmail());
         setOnboardingComplete(false);
+        setAccountStatus({
+          loaded: true,
+          emailVerified: false,
+          demoUsed: false,
+          waitlistFilled: false,
+          tester: false,
+          onboardingComplete: false,
+        });
         setAuthReady(true);
         return;
       }
 
       const token = await user.getIdToken().catch(() => '');
-      const onboardingRecord = await getOnboardingRecord(user.uid);
+      const [onboardingRecord, accountStatusResp] = await Promise.all([
+        getOnboardingRecord(user.uid),
+        apiAccountStatus({ idToken: token }),
+      ]);
+
+      const nextAccountStatus = accountStatusResp.ok ? accountStatusResp.data : {};
 
       setAuthToken(token);
       setUserId(user.uid);
       setEmail(user.email || '');
-      setOnboardingComplete(Boolean(onboardingRecord?.completed));
+      setPendingEmailState(user.email || readPendingEmail());
+      setOnboardingComplete(Boolean(onboardingRecord?.completed) || Boolean(nextAccountStatus.onboardingComplete));
+      setAccountStatus({
+        loaded: true,
+        emailVerified: Boolean(nextAccountStatus.emailVerified || user.emailVerified),
+        demoUsed: Boolean(nextAccountStatus.demoUsed),
+        waitlistFilled: Boolean(nextAccountStatus.waitlistFilled),
+        tester: Boolean(nextAccountStatus.tester),
+        onboardingComplete: Boolean(onboardingRecord?.completed) || Boolean(nextAccountStatus.onboardingComplete),
+      });
       setOnboardingData((previous) => ({
         ...previous,
         name: user.displayName || previous.name,
@@ -252,13 +361,17 @@ function AppProvider({ children }) {
       setUserId,
       email,
       setEmail,
+      pendingEmail,
+      setPendingEmail: setPendingEmailState,
       authReady,
       onboardingComplete,
       setOnboardingComplete,
+      accountStatus,
+      setAccountStatus,
       onboardingData,
       setOnboardingData,
     }),
-    [authToken, userId, email, authReady, onboardingComplete, onboardingData]
+    [authToken, userId, email, pendingEmail, authReady, onboardingComplete, accountStatus, onboardingData]
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
@@ -1799,16 +1912,22 @@ function DemoPage({ push }) {
 }
 
 function WaitlistPage({ push }) {
-  const { onboardingData, email } = useAppContext();
+  const { onboardingData, email, accountStatus } = useAppContext();
   const [name, setName] = useState(onboardingData.name || '');
   const [emailValue, setEmailValue] = useState(email || '');
   const [message, setMessage] = useState('');
   const [rating, setRating] = useState(4);
   const [loading, setLoading] = useState(false);
-  const [joined, setJoined] = useState(false);
+  const [joined, setJoined] = useState(Boolean(accountStatus.waitlistFilled));
   const [error, setError] = useState('');
 
   const WAITLIST_URL = 'https://dgentechnologies.com/products/adam';
+  const blockedNotice = accountStatus.demoUsed && !accountStatus.tester
+    ? 'You already used this ADAM preview. The waitlist is the next step.'
+    : accountStatus.waitlistFilled
+      ? 'You already filled the waitlist. We have your details on file.'
+      : '';
+  const showExistingStatus = joined || accountStatus.waitlistFilled;
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -1825,12 +1944,18 @@ function WaitlistPage({ push }) {
     });
     setLoading(false);
 
+    if (result.data?.alreadyRegistered || result.data?.alreadyFilled) {
+      setJoined(true);
+      setError('');
+      return;
+    }
+
     if (!result.ok && !result.data?.success) {
       setError('Unable to join right now.');
       return;
     }
 
-    window.location.href = 'https://dgentechnologies.com/products/adam';
+    window.location.href = WAITLIST_URL;
   };
 
   return (
@@ -1846,7 +1971,7 @@ function WaitlistPage({ push }) {
         <div className="waitlist-progress">
           <div className="waitlist-progress-row">
             <span>Session Review</span>
-            <span>Waitlist Status: Pending</span>
+            <span>Waitlist Status: {showExistingStatus ? 'Joined' : 'Pending'}</span>
           </div>
           <div className="waitlist-progress-track">
             <div className="waitlist-progress-fill" />
@@ -1854,7 +1979,18 @@ function WaitlistPage({ push }) {
         </div>
 
         <article className="waitlist-card">
-          {!joined ? (
+          {blockedNotice ? <p className="waitlist-blocked-banner">{blockedNotice}</p> : null}
+
+          {showExistingStatus ? (
+            <div className="waitlist-success" role="status" aria-live="polite">
+              <h2 className="waitlist-title">You already filled the wishlist.</h2>
+              <p className="waitlist-subtitle">We have your waitlist details on file and ADAM will keep you updated.</p>
+              <a className="waitlist-submit waitlist-link" href={WAITLIST_URL} target="_blank" rel="noreferrer">
+                Open ADAM Waitlist
+                <ArrowRight size={16} />
+              </a>
+            </div>
+          ) : (
             <>
               <h2 className="waitlist-title">How was your session?</h2>
               <p className="waitlist-subtitle">
@@ -1927,7 +2063,7 @@ function WaitlistPage({ push }) {
                   </div>
                 </div>
 
-                {error ? <p className="error-text">Unable to join right now.</p> : null}
+                {error ? <p className="error-text">{error}</p> : null}
 
                 <div className="waitlist-actions">
                   <button className="waitlist-later" type="button" onClick={() => push('/demo')}>
@@ -1940,15 +2076,6 @@ function WaitlistPage({ push }) {
                 </div>
               </form>
             </>
-          ) : (
-            <div className="waitlist-success" role="status" aria-live="polite">
-              <h2 className="waitlist-title">You&apos;re on the priority list.</h2>
-              <p className="waitlist-subtitle">Thanks for the review. We&apos;ll contact you with early access updates.</p>
-              <a className="waitlist-submit waitlist-link" href={WAITLIST_URL} target="_blank" rel="noreferrer">
-                Open ADAM Waitlist
-                <ArrowRight size={16} />
-              </a>
-            </div>
           )}
         </article>
       </section>
@@ -1958,25 +2085,40 @@ function WaitlistPage({ push }) {
 
 function RouterView() {
   const { route, push } = useHashRouter();
-  const { authToken, userId, authReady, onboardingComplete } = useAppContext();
+  const { authToken, userId, authReady, onboardingComplete, accountStatus } = useAppContext();
 
   useEffect(() => {
     if (!authReady || !authToken || route !== '/') {
       return;
     }
 
+    if (accountStatus.loaded && accountStatus.demoUsed && !accountStatus.tester) {
+      push('/waitlist');
+      return;
+    }
+
     push(onboardingComplete ? '/demo' : '/onboarding');
-  }, [authReady, authToken, onboardingComplete, push, route]);
+  }, [accountStatus, authReady, authToken, onboardingComplete, push, route]);
 
   if (!authReady) {
     return null;
   }
 
-  if (!authToken && route !== '/') {
-    return <LoginPage push={push} />;
+  if (route === '/verify-email') {
+    return <VerifyEmailPage push={push} />;
+  }
+
+  if (route === '/waitlist') {
+    return <WaitlistPage push={push} />;
   }
 
   if (route === '/onboarding') {
+    if (!authToken) {
+      return <LoginPage push={push} />;
+    }
+    if (accountStatus.loaded && accountStatus.demoUsed && !accountStatus.tester) {
+      return <WaitlistPage push={push} />;
+    }
     return <OnboardingPage push={push} />;
   }
 
@@ -1984,11 +2126,14 @@ function RouterView() {
     if (!userId) {
       return <LoginPage push={push} />;
     }
+    if (accountStatus.loaded && accountStatus.demoUsed && !accountStatus.tester) {
+      return <WaitlistPage push={push} />;
+    }
     return <DemoPage push={push} />;
   }
 
-  if (route === '/waitlist') {
-    return <WaitlistPage push={push} />;
+  if (authToken && route === '/') {
+    return <LoginPage push={push} />;
   }
 
   return <LoginPage push={push} />;
@@ -2394,6 +2539,237 @@ export default function App() {
           box-shadow: 0 1px 4px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.36);
           font-family: 'Inter', sans-serif;
           letter-spacing: 0.01em;
+        }
+
+        .email-verify-row {
+          display: flex;
+          gap: 10px;
+          align-items: stretch;
+        }
+
+        .email-verify-input {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .email-verify-button,
+        .verify-primary-button,
+        .verify-ghost-button,
+        .link-button {
+          border: 0;
+          border-radius: 14px;
+          padding: 12px 16px;
+          font-size: 13px;
+          font-weight: 800;
+          cursor: pointer;
+          transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease, border-color 180ms ease;
+          white-space: nowrap;
+        }
+
+        .email-verify-button,
+        .verify-primary-button {
+          background: linear-gradient(135deg, #56e083 0%, #19b35c 100%);
+          color: #ffffff;
+          box-shadow: 0 12px 30px rgba(25, 179, 92, 0.24);
+        }
+
+        .verify-ghost-button,
+        .link-button {
+          background: rgba(255, 255, 255, 0.62);
+          color: var(--text-charcoal);
+          border: 1px solid rgba(19, 19, 19, 0.12);
+        }
+
+        .email-verify-button:hover:not(:disabled),
+        .verify-primary-button:hover:not(:disabled),
+        .verify-ghost-button:hover:not(:disabled),
+        .link-button:hover:not(:disabled) {
+          transform: translateY(-1px);
+        }
+
+        .email-verify-button:disabled,
+        .verify-primary-button:disabled,
+        .verify-ghost-button:disabled,
+        .link-button:disabled {
+          opacity: 0.72;
+          cursor: not-allowed;
+        }
+
+        .form-note {
+          margin: 0;
+          font-size: 12px;
+          line-height: 18px;
+          color: rgba(19, 19, 19, 0.64);
+        }
+
+        .auth-footer-note {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          font-size: 12px;
+          color: rgba(19, 19, 19, 0.58);
+        }
+
+        .verify-page-root {
+          min-height: 100vh;
+          min-height: 100dvh;
+        }
+
+        .verify-shell {
+          justify-content: center;
+          align-items: center;
+          padding: 80px 24px 24px;
+        }
+
+        .verify-card {
+          position: relative;
+          z-index: 1;
+          width: 100%;
+          max-width: 560px;
+          padding: 30px;
+          border-radius: 28px;
+          background: rgba(14, 14, 14, 0.72);
+          color: #f4f4f4;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          box-shadow: 0 24px 80px rgba(0, 0, 0, 0.38);
+          backdrop-filter: blur(18px) saturate(140%);
+        }
+
+        .verify-kicker {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          border-radius: 999px;
+          padding: 6px 12px;
+          background: rgba(86, 224, 131, 0.12);
+          color: #9af0b5;
+          border: 1px solid rgba(86, 224, 131, 0.22);
+          font-size: 11px;
+          font-weight: 800;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          margin-bottom: 16px;
+        }
+
+        .verify-card h2 {
+          margin: 0 0 10px;
+          font-family: 'Space Grotesk', sans-serif;
+          font-size: 28px;
+          line-height: 1.15;
+          letter-spacing: -0.03em;
+        }
+
+        .verify-card p {
+          margin: 0;
+          color: rgba(244, 244, 244, 0.76);
+          font-size: 14px;
+          line-height: 22px;
+        }
+
+        .verify-status-card {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          margin: 22px 0;
+          padding: 18px;
+          border-radius: 18px;
+          background: rgba(255, 255, 255, 0.06);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .verify-status-dot {
+          width: 14px;
+          height: 14px;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.4);
+          box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.06);
+          flex-shrink: 0;
+        }
+
+        .verify-status-dot.verifying {
+          background: #f9c74f;
+          box-shadow: 0 0 0 6px rgba(249, 199, 79, 0.14);
+        }
+
+        .verify-status-dot.verified {
+          background: #56e083;
+          box-shadow: 0 0 0 6px rgba(86, 224, 131, 0.14);
+        }
+
+        .verify-status-card strong,
+        .verify-status-card span {
+          display: block;
+        }
+
+        .verify-status-card strong {
+          margin-bottom: 2px;
+          font-size: 14px;
+        }
+
+        .verify-status-card span {
+          font-size: 12px;
+          color: rgba(244, 244, 244, 0.62);
+        }
+
+        .verify-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 12px;
+          margin-top: 24px;
+        .waitlist-blocked-banner {
+          margin: 0 0 18px;
+          padding: 12px 14px;
+          border-radius: 14px;
+          background: rgba(25, 179, 92, 0.08);
+          border: 1px solid rgba(25, 179, 92, 0.18);
+          color: #d6ffe2;
+          font-size: 13px;
+          line-height: 20px;
+        }
+
+        }
+
+        @media (max-width: 640px) {
+          .grid-two {
+            grid-template-columns: 1fr;
+          }
+
+          .form-heading h2 {
+            font-size: 24px;
+            line-height: 30px;
+          }
+
+          .btn-primary,
+          .btn-google {
+            border-radius: 12px;
+          }
+
+          .email-verify-row {
+            flex-direction: column;
+          }
+
+          .email-verify-button {
+            width: 100%;
+          }
+
+          .verify-card {
+            padding: 22px;
+            border-radius: 24px;
+          }
+
+          .verify-card h2 {
+            font-size: 24px;
+          }
+
+          .verify-actions {
+            flex-direction: column;
+          }
+
+          .verify-actions > * {
+            width: 100%;
+          }
         }
 
         .btn-google:hover {

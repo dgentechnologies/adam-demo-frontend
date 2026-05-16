@@ -7,6 +7,18 @@ import { adminAuth, adminDb } from '@/lib/firebaseAdmin';
 const DEFAULT_DURATION_SECONDS = 300;
 const MAX_ID_TOKEN_LENGTH = 8192;
 
+function parseTesterValues(raw: string | undefined): Set<string> {
+  return new Set(
+    String(raw ?? '')
+      .split(',')
+      .map((value) => value.trim().toLowerCase())
+      .filter(Boolean),
+  );
+}
+
+const TESTER_UIDS = parseTesterValues(process.env.TESTER_UIDS);
+const TESTER_EMAILS = parseTesterValues(process.env.TESTER_EMAILS);
+
 function normalizeText(value: unknown, max = 120): string {
   if (typeof value !== 'string') {
     return '';
@@ -83,8 +95,25 @@ export async function POST(req: NextRequest) {
     }
 
     const uid = decoded.uid;
+    const email = String(decoded.email ?? '').trim().toLowerCase();
+    const tester = TESTER_UIDS.has(uid.toLowerCase()) || (email ? TESTER_EMAILS.has(email) : false);
     const clientLocation = sanitizeClientLocation(body.location);
     const userRef = adminDb.collection('adamUsers').doc(uid);
+    const userSnap = await userRef.get();
+    const userData = userSnap.data() ?? {};
+    const totalDemoSessions = typeof userData.totalDemoSessions === 'number' ? userData.totalDemoSessions : 0;
+
+    if (!tester && totalDemoSessions > 0) {
+      return Response.json(
+        {
+          error: 'demo_used',
+          message: 'You already used this preview. Please join the waitlist instead.',
+          waitlisted: Boolean(userData.waitlisted),
+        },
+        { status: 403 },
+      );
+    }
+
     const sessionRef = adminDb.collection('demoSessions').doc();
 
     await sessionRef.set({
