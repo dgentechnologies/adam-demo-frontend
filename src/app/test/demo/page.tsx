@@ -3,16 +3,25 @@
 import { useState, useRef, useEffect } from 'react';
 import styles from './demo.module.css';
 
+const BG2_FACE_RECT = {
+  x: 580 / 1672,
+  y: 254 / 940,
+  w: 177 / 1672,
+  h: 128 / 940,
+};
+
 const EMOTIONS = [
   'angry',
   'confused',
   'happy',
+  'ideal',
   'love',
   'panic',
   'reconnecting',
   'rizz',
   'sad',
   'search-thinking',
+  'speeking',
   'shy',
   'sleep',
   'surprised',
@@ -20,7 +29,15 @@ const EMOTIONS = [
 
 export default function DemoPage() {
   const [activeEmotion, setActiveEmotion] = useState<string>('happy');
+  const [emotionLayerStyle, setEmotionLayerStyle] = useState({
+    left: '34.69%',
+    top: '27.02%',
+    width: '10.59%',
+    height: '13.62%',
+  });
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const testAreaRef = useRef<HTMLDivElement>(null);
+  const bgImageRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
     const iframe = iframeRef.current;
@@ -76,14 +93,61 @@ export default function DemoPage() {
     return () => iframe.removeEventListener('load', handleIframeLoad);
   }, []);
 
+  useEffect(() => {
+    const updateEmotionLayerPosition = () => {
+      const container = testAreaRef.current;
+      const bg = bgImageRef.current;
+      if (!container || !bg || !bg.naturalWidth || !bg.naturalHeight) return;
+
+      const cw = container.clientWidth;
+      const ch = container.clientHeight;
+      const nw = bg.naturalWidth;
+      const nh = bg.naturalHeight;
+
+      // Match CSS object-fit: cover mapping for bg2.png.
+      const scale = Math.max(cw / nw, ch / nh);
+      const renderW = nw * scale;
+      const renderH = nh * scale;
+      const offsetX = (cw - renderW) / 2;
+      const offsetY = (ch - renderH) / 2;
+
+      const left = offsetX + BG2_FACE_RECT.x * renderW;
+      const top = offsetY + BG2_FACE_RECT.y * renderH;
+      const width = BG2_FACE_RECT.w * renderW;
+      const height = BG2_FACE_RECT.h * renderH;
+
+      setEmotionLayerStyle({
+        left: `${left}px`,
+        top: `${top}px`,
+        width: `${width}px`,
+        height: `${height}px`,
+      });
+    };
+
+    const bg = bgImageRef.current;
+    if (!bg) return;
+
+    if (bg.complete) {
+      updateEmotionLayerPosition();
+    }
+
+    bg.addEventListener('load', updateEmotionLayerPosition);
+    window.addEventListener('resize', updateEmotionLayerPosition);
+
+    return () => {
+      bg.removeEventListener('load', updateEmotionLayerPosition);
+      window.removeEventListener('resize', updateEmotionLayerPosition);
+    };
+  }, []);
+
   return (
     <div className={styles.container}>
-      <div className={styles.testArea}>
+      <div ref={testAreaRef} className={styles.testArea}>
         {/* Background Image */}
-        <img src="/images/bg2.png" alt="Background" className={styles.bgImage} />
+        <img ref={bgImageRef} src="/images/bg2.png" alt="Background" className={styles.bgImage} />
 
         {/* Emotion Layer - Iframe */}
-        <div className={styles.emotionLayer}>
+        <div className={styles.emotionLayer} style={emotionLayerStyle}>
           <iframe
             ref={iframeRef}
             key={activeEmotion}
