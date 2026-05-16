@@ -1556,8 +1556,9 @@ function DemoPage({ push }) {
   const faceAreaRef = useRef(null);
   const emotionIframeRef = useRef(null);
   const introShownRef = useRef(false);
+  const pendingTurnCompleteRef = useRef(false);
 
-  const visibleEmotion = adamSpeaking ? 'speeking' : baseEmotion;
+  const visibleEmotion = adamSpeaking && baseEmotion === 'ideal' ? 'speeking' : baseEmotion;
 
   const cleanupMicCapture = () => {
     if (micProcessorRef.current) {
@@ -1600,11 +1601,18 @@ function DemoPage({ push }) {
     mouthSyncTimerRef.current = null;
   };
 
+  const isSpeakerPlaybackActive = () => {
+    const ctx = speakerCtxRef.current;
+    if (!ctx) {
+      return false;
+    }
+    return nextSpeakerStartRef.current > ctx.currentTime + 0.03;
+  };
+
   const finishAdamSpeaking = () => {
     setAdamSpeaking(false);
     clearMouthSyncTimer();
     setMouthSyncActive(false);
-    setBaseEmotion('ideal');
   };
 
   const updateEmotionLayerPosition = () => {
@@ -1792,7 +1800,8 @@ svg {
     const untilEndMs = Math.max(0, (nextSpeakerStartRef.current - ctx.currentTime) * 1000) + 360;
     speechEndTimerRef.current = setTimeout(() => {
       finishAdamSpeaking();
-      if (sessionState === 'active' && micPermission === 'granted') {
+      pendingTurnCompleteRef.current = false;
+      if (sessionStateRef.current === 'active' && micPermissionRef.current === 'granted') {
         setIsRecording(true);
       }
     }, untilEndMs);
@@ -2143,22 +2152,23 @@ svg {
           const speaking = incoming.state === 'speaking';
           if (speaking) {
             setAdamSpeaking(true);
-          } else {
-            finishAdamSpeaking();
+            pendingTurnCompleteRef.current = false;
+            return;
           }
-          if (!speaking) {
-            if (sessionState === 'active' && micPermission === 'granted') {
-              setIsRecording(true);
-            }
+
+          if (adamSpeakingRef.current || isSpeakerPlaybackActive()) {
+            return;
           }
-          if (!speaking && sessionState === 'active' && micPermission === 'granted') {
+
+          finishAdamSpeaking();
+          pendingTurnCompleteRef.current = false;
+          if (sessionStateRef.current === 'active' && micPermissionRef.current === 'granted') {
             setIsRecording(true);
           }
           return;
         }
 
         if (incoming.type === 'turn_complete') {
-          finishAdamSpeaking();
           setTranscript((prev) => {
             const last = prev[prev.length - 1];
             if (!last || last.speaker !== 'ADAM' || !last.inProgress) {
@@ -2174,13 +2184,22 @@ svg {
               },
             ];
           });
-          if (sessionState === 'active' && micPermission === 'granted') {
+
+          if (adamSpeakingRef.current || isSpeakerPlaybackActive()) {
+            pendingTurnCompleteRef.current = true;
+            return;
+          }
+
+          finishAdamSpeaking();
+          pendingTurnCompleteRef.current = false;
+          if (sessionStateRef.current === 'active' && micPermissionRef.current === 'granted') {
             setIsRecording(true);
           }
           return;
         }
 
         if (incoming.type === 'session_end') {
+          pendingTurnCompleteRef.current = false;
           clearMouthSyncTimer();
           setMouthSyncActive(false);
           closeSession(incoming.reason || 'cap_reached', false);
