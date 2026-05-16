@@ -8,7 +8,7 @@ const MAX_ID_TOKEN_LENGTH = 8192;
 function parseTesterValues(raw: string | undefined): Set<string> {
   return new Set(
     String(raw ?? '')
-      .split(',')
+      .split(/[\n,;]+/)
       .map((value) => value.trim().toLowerCase())
       .filter(Boolean),
   );
@@ -16,6 +16,16 @@ function parseTesterValues(raw: string | undefined): Set<string> {
 
 const TESTER_UIDS = parseTesterValues(process.env.TESTER_UIDS);
 const TESTER_EMAILS = parseTesterValues(process.env.TESTER_EMAILS);
+
+function isTesterByClaim(decoded: Awaited<ReturnType<typeof adminAuth.verifyIdToken>>): boolean {
+  const claimTester = decoded.tester;
+  const claimRole = decoded.role;
+  return claimTester === true || claimRole === 'tester';
+}
+
+function isTesterByProfileFlag(userData: Record<string, unknown>): boolean {
+  return userData.tester === true || userData.isTester === true;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -37,10 +47,14 @@ export async function POST(req: NextRequest) {
 
     const uid = decoded.uid;
     const email = String(decoded.email ?? '').trim().toLowerCase();
-    const tester = TESTER_UIDS.has(uid.toLowerCase()) || (email ? TESTER_EMAILS.has(email) : false);
 
     const userSnap = await adminDb.collection('adamUsers').doc(uid).get();
-    const userData = userSnap.data() ?? {};
+    const userData = (userSnap.data() ?? {}) as Record<string, unknown>;
+    const tester =
+      TESTER_UIDS.has(uid.toLowerCase()) ||
+      (email ? TESTER_EMAILS.has(email) : false) ||
+      isTesterByClaim(decoded) ||
+      isTesterByProfileFlag(userData);
     const totalDemoSessions = typeof userData.totalDemoSessions === 'number' ? userData.totalDemoSessions : 0;
     const onboardingComplete = Boolean(userData.onboardingCompleted);
 
