@@ -1555,8 +1555,9 @@ function DemoPage({ push }) {
   const mouthSyncTimerRef = useRef(null);
   const faceAreaRef = useRef(null);
   const emotionIframeRef = useRef(null);
+  const introShownRef = useRef(false);
 
-  const visibleEmotion = adamSpeaking || mouthSyncActive ? 'speeking' : baseEmotion;
+  const visibleEmotion = adamSpeaking ? 'speeking' : baseEmotion;
 
   const cleanupMicCapture = () => {
     if (micProcessorRef.current) {
@@ -1597,6 +1598,13 @@ function DemoPage({ push }) {
     }
     clearTimeout(mouthSyncTimerRef.current);
     mouthSyncTimerRef.current = null;
+  };
+
+  const finishAdamSpeaking = () => {
+    setAdamSpeaking(false);
+    clearMouthSyncTimer();
+    setMouthSyncActive(false);
+    setBaseEmotion('ideal');
   };
 
   const updateEmotionLayerPosition = () => {
@@ -1728,6 +1736,7 @@ svg {
   const stopRealtimeResources = () => {
     clearMouthSyncTimer();
     setMouthSyncActive(false);
+    setBaseEmotion('ideal');
     cleanupMicCapture();
     cleanupSpeaker();
     if (wsRef.current) {
@@ -1782,7 +1791,7 @@ svg {
 
     const untilEndMs = Math.max(0, (nextSpeakerStartRef.current - ctx.currentTime) * 1000) + 360;
     speechEndTimerRef.current = setTimeout(() => {
-      setAdamSpeaking(false);
+      finishAdamSpeaking();
       if (sessionState === 'active' && micPermission === 'granted') {
         setIsRecording(true);
       }
@@ -1979,6 +1988,7 @@ svg {
     setBaseEmotion('ideal');
     setMouthSyncActive(false);
     clearMouthSyncTimer();
+    introShownRef.current = false;
 
     // Fire mic permission dialog immediately — runs in parallel with API calls
     if (!micStreamRef.current) {
@@ -2049,6 +2059,10 @@ svg {
           setStartedAt(Date.now());
           setSessionState('active');
           setIsRecording(micPermission === 'granted');
+          if (!introShownRef.current) {
+            pushSystemTranscript('Systems aligned. ADAM online.', 'adam');
+            introShownRef.current = true;
+          }
           return;
         }
 
@@ -2127,10 +2141,15 @@ svg {
 
         if (incoming.type === 'face_state') {
           const speaking = incoming.state === 'speaking';
-          setAdamSpeaking(speaking);
+          if (speaking) {
+            setAdamSpeaking(true);
+          } else {
+            finishAdamSpeaking();
+          }
           if (!speaking) {
-            clearMouthSyncTimer();
-            setMouthSyncActive(false);
+            if (sessionState === 'active' && micPermission === 'granted') {
+              setIsRecording(true);
+            }
           }
           if (!speaking && sessionState === 'active' && micPermission === 'granted') {
             setIsRecording(true);
@@ -2139,9 +2158,7 @@ svg {
         }
 
         if (incoming.type === 'turn_complete') {
-          setAdamSpeaking(false);
-          clearMouthSyncTimer();
-          setMouthSyncActive(false);
+          finishAdamSpeaking();
           setTranscript((prev) => {
             const last = prev[prev.length - 1];
             if (!last || last.speaker !== 'ADAM' || !last.inProgress) {
@@ -2430,10 +2447,10 @@ function WaitlistPage({ push }) {
 
           {showExistingStatus ? (
             <div className="waitlist-success" role="status" aria-live="polite">
-              <h2 className="waitlist-title">You already filled the wishlist.</h2>
+              <h2 className="waitlist-title">You already filled the waitlist.</h2>
               <p className="waitlist-subtitle">We have your waitlist details on file and ADAM will keep you updated.</p>
               <a className="waitlist-submit waitlist-link" href={WAITLIST_URL} target="_blank" rel="noreferrer">
-                Open ADAM Waitlist
+                Explore ADAM
                 <ArrowRight size={16} />
               </a>
             </div>
