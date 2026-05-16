@@ -737,97 +737,94 @@ function VerifyEmailPage({ push }) {
     setOnboardingComplete,
     setAccountStatus,
   } = useAppContext();
-  const [checking, setChecking] = useState(false);
   const [resending, setResending] = useState(false);
+  const [resent, setResent] = useState(false);
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('Please verify your email and then click I have verified.');
+  const [pollStatus, setPollStatus] = useState('waiting'); // 'waiting' | 'verified' | 'error'
+  const intervalRef = useRef(null);
 
   const activeEmail = email || pendingEmail || '';
 
   const resolveNextRoute = (status) => {
-    if (status.demoUsed && !status.tester) {
-      return '/waitlist';
-    }
-
-    if (status.onboardingComplete) {
-      return '/demo';
-    }
-
+    if (status.demoUsed && !status.tester) return '/waitlist';
+    if (status.onboardingComplete) return '/demo';
     return '/onboarding';
   };
 
-  const checkVerification = async () => {
-    setError('');
-    setChecking(true);
+  const finalizeVerification = async (user) => {
+    try {
+      const token = await user.getIdToken(true);
+      const accountStatusResp = await apiAccountStatus({ idToken: token });
+      const nextStatus = {
+        loaded: true,
+        emailVerified: true,
+        demoUsed: Boolean(accountStatusResp.data?.demoUsed),
+        waitlistFilled: Boolean(accountStatusResp.data?.waitlistFilled),
+        tester: Boolean(accountStatusResp.data?.tester),
+        onboardingComplete: Boolean(accountStatusResp.data?.onboardingComplete),
+      };
+      clearPendingEmail();
+      setPendingEmail('');
+      setAuthToken(token);
+      setUserId(user.uid);
+      setEmail(user.email || activeEmail);
+      setOnboardingComplete(nextStatus.onboardingComplete);
+      setAccountStatus(nextStatus);
+      setPollStatus('verified');
+      setTimeout(() => push(resolveNextRoute(nextStatus)), 900);
+    } catch (_err) {
+      setError('Verified but could not load account. Please refresh.');
+    }
+  };
 
-    if (FIREBASE_ENABLED) {
+  // Auto-poll every 3 seconds
+  useEffect(() => {
+    if (!FIREBASE_ENABLED) {
+      // Mock: auto-verify after 2s so devs can test the UI
+      const t = setTimeout(async () => {
+        const statusResp = await apiAccountStatus({ email: activeEmail || 'mock@example.com', token: authToken || 'mock' });
+        const nextStatus = {
+          loaded: true, emailVerified: true,
+          demoUsed: Boolean(statusResp.data?.demoUsed),
+          waitlistFilled: Boolean(statusResp.data?.waitlistFilled),
+          tester: Boolean(statusResp.data?.tester),
+          onboardingComplete: Boolean(statusResp.data?.onboardingComplete),
+        };
+        clearPendingEmail();
+        setPendingEmail('');
+        setAccountStatus(nextStatus);
+        setOnboardingComplete(nextStatus.onboardingComplete);
+        setPollStatus('verified');
+        setTimeout(() => push(resolveNextRoute(nextStatus)), 900);
+      }, 2000);
+      return () => clearTimeout(t);
+    }
+
+    const poll = async () => {
       try {
         const auth = getClientAuth();
         const user = auth.currentUser;
-
-        if (!user) {
-          setError('Session expired. Please sign in again.');
-          setChecking(false);
-          return;
-        }
-
+        if (!user) return;
         await user.reload();
-
-        if (!user.emailVerified) {
-          setNotice('Email not verified yet. Open your inbox and click the verification link.');
-          setChecking(false);
-          return;
+        if (user.emailVerified) {
+          clearInterval(intervalRef.current);
+          await finalizeVerification(user);
         }
-
-        const token = await user.getIdToken(true);
-        const accountStatusResp = await apiAccountStatus({ idToken: token });
-        const nextStatus = {
-          loaded: true,
-          emailVerified: true,
-          demoUsed: Boolean(accountStatusResp.data?.demoUsed),
-          waitlistFilled: Boolean(accountStatusResp.data?.waitlistFilled),
-          tester: Boolean(accountStatusResp.data?.tester),
-          onboardingComplete: Boolean(accountStatusResp.data?.onboardingComplete),
-        };
-
-        clearPendingEmail();
-        setPendingEmail('');
-        setAuthToken(token);
-        setUserId(user.uid);
-        setEmail(user.email || activeEmail);
-        setOnboardingComplete(nextStatus.onboardingComplete);
-        setAccountStatus(nextStatus);
-        setChecking(false);
-        push(resolveNextRoute(nextStatus));
-        return;
-      } catch (_error) {
-        setError('Unable to verify right now. Please try again.');
-        setChecking(false);
-        return;
+      } catch (_err) {
+        // silently ignore transient errors — keep polling
       }
-    }
-
-    const statusResp = await apiAccountStatus({ email: activeEmail || 'mock.user@example.com', token: authToken || 'mock-token' });
-    const nextStatus = {
-      loaded: true,
-      emailVerified: true,
-      demoUsed: Boolean(statusResp.data?.demoUsed),
-      waitlistFilled: Boolean(statusResp.data?.waitlistFilled),
-      tester: Boolean(statusResp.data?.tester),
-      onboardingComplete: Boolean(statusResp.data?.onboardingComplete),
     };
 
-    clearPendingEmail();
-    setPendingEmail('');
-    setAccountStatus(nextStatus);
-    setOnboardingComplete(nextStatus.onboardingComplete);
-    setChecking(false);
-    push(resolveNextRoute(nextStatus));
-  };
+    intervalRef.current = setInterval(poll, 3000);
+    poll(); // first check immediately
+
+    return () => clearInterval(intervalRef.current);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const resendVerificationEmail = async () => {
     setError('');
     setResending(true);
+    setResent(false);
 
     if (FIREBASE_ENABLED) {
       try {
@@ -837,24 +834,23 @@ function VerifyEmailPage({ push }) {
           setResending(false);
           return;
         }
-
-        await sendEmailVerification(user, {
-          url: buildEmailActionUrl(),
-        });
-        setNotice('Verification email sent. Please check your inbox and spam folder.');
+        await sendEmailVerification(user, { url: buildEmailActionUrl() });
+        setResent(true);
         setResending(false);
         return;
-      } catch (_error) {
-        setError('Could not resend verification email right now.');
+      } catch (_err) {
+        setError('Could not resend — please wait a minute and try again.');
         setResending(false);
         return;
       }
     }
 
     await apiSendEmailLink({ email: activeEmail });
-    setNotice('Verification email sent (mock).');
+    setResent(true);
     setResending(false);
   };
+
+  const isVerified = pollStatus === 'verified';
 
   return (
     <main className="site-root">
@@ -863,28 +859,65 @@ function VerifyEmailPage({ push }) {
 
       <section className="verify-page-root">
         <article className="verify-card">
-          <p className="verify-kicker">Email Verification Required</p>
-          <h2>Check your email to continue</h2>
-          <p>
-            We sent a verification link to <strong>{activeEmail || 'your email address'}</strong>.
-            Verify your email, then click the button below.
-          </p>
+          {/* Animated envelope icon */}
+          <div className="verify-icon-wrap" aria-hidden="true">
+            <svg className={`verify-envelope${isVerified ? ' verified' : ''}`} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="4" y="14" width="56" height="36" rx="6" stroke="currentColor" strokeWidth="2.5" />
+              <path d="M4 20l28 20 28-20" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+              {isVerified && (
+                <path className="verify-checkmark" d="M22 33l8 8 14-14" stroke="#56e083" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+              )}
+            </svg>
+            {!isVerified && (
+              <span className="verify-pulse-ring" aria-hidden="true" />
+            )}
+          </div>
 
-          <div className="verify-status-card" role="status" aria-live="polite">
-            <span className={`verify-status-dot ${checking ? 'verifying' : ''}`} aria-hidden="true" />
-            <span>{checking ? 'Checking verification status...' : notice}</span>
+          <p className="verify-kicker">
+            {isVerified ? 'Email Verified ✓' : 'Email Verification Required'}
+          </p>
+          <h2>{isVerified ? 'All set! Redirecting you now…' : 'Check your inbox'}</h2>
+          {!isVerified && (
+            <p className="verify-sub">
+              We sent a verification link to{' '}
+              <strong className="verify-email-highlight">{activeEmail || 'your email address'}</strong>.
+              Open it and click the link — this page will update automatically.
+            </p>
+          )}
+
+          <div className={`verify-status-card${isVerified ? ' verified' : ''}`} role="status" aria-live="polite">
+            <span className={`verify-status-dot${isVerified ? ' verified' : ' verifying'}`} aria-hidden="true" />
+            <span>
+              {isVerified
+                ? 'Email verified — redirecting…'
+                : 'Waiting for verification… (checking automatically)'}
+            </span>
           </div>
 
           {error ? <p className="error-text dark">{error}</p> : null}
+          {resent && !error ? (
+            <p className="verify-resent-notice">Email resent — check your inbox and spam folder.</p>
+          ) : null}
 
-          <div className="verify-actions">
-            <button className="btn-primary verify-primary-button" type="button" disabled={checking} onClick={checkVerification}>
-              {checking ? 'Checking...' : 'I Have Verified'}
-            </button>
-            <button className="verify-ghost-button" type="button" disabled={resending || checking} onClick={resendVerificationEmail}>
-              {resending ? 'Resending...' : 'Resend Email'}
-            </button>
-          </div>
+          {!isVerified && (
+            <div className="verify-actions">
+              <button
+                className="verify-ghost-button"
+                type="button"
+                disabled={resending}
+                onClick={resendVerificationEmail}
+              >
+                {resending ? 'Sending…' : 'Resend Email'}
+              </button>
+              <button
+                className="verify-ghost-button verify-back-button"
+                type="button"
+                onClick={() => push('/')}
+              >
+                ← Back to Sign In
+              </button>
+            </div>
+          )}
         </article>
       </section>
     </main>
@@ -2753,8 +2786,6 @@ export default function App() {
         }
 
         .email-verify-button,
-        .verify-primary-button,
-        .verify-ghost-button,
         .link-button {
           border: 0;
           border-radius: 14px;
@@ -2766,8 +2797,7 @@ export default function App() {
           white-space: nowrap;
         }
 
-        .email-verify-button,
-        .verify-primary-button {
+        .email-verify-button {
           background: linear-gradient(135deg, #56e083 0%, #19b35c 100%);
           color: #ffffff;
           box-shadow: 0 12px 30px rgba(25, 179, 92, 0.24);
@@ -2778,17 +2808,21 @@ export default function App() {
           background: rgba(255, 255, 255, 0.62);
           color: var(--text-charcoal);
           border: 1px solid rgba(19, 19, 19, 0.12);
+          border-radius: 14px;
+          padding: 12px 20px;
+          font-size: 13px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease;
         }
 
         .email-verify-button:hover:not(:disabled),
-        .verify-primary-button:hover:not(:disabled),
         .verify-ghost-button:hover:not(:disabled),
         .link-button:hover:not(:disabled) {
           transform: translateY(-1px);
         }
 
         .email-verify-button:disabled,
-        .verify-primary-button:disabled,
         .verify-ghost-button:disabled,
         .link-button:disabled {
           opacity: 0.72;
@@ -2812,29 +2846,74 @@ export default function App() {
           color: rgba(19, 19, 19, 0.58);
         }
 
+        /* ── verify page ── */
         .verify-page-root {
-          min-height: 100vh;
-          min-height: 100dvh;
-        }
-
-        .verify-shell {
-          justify-content: center;
+          flex: 1;
+          display: flex;
           align-items: center;
-          padding: 80px 24px 24px;
+          justify-content: center;
+          min-height: calc(100vh - 64px);
+          min-height: calc(100dvh - 64px);
+          padding: 24px 20px 40px;
         }
 
         .verify-card {
           position: relative;
           z-index: 1;
           width: 100%;
-          max-width: 560px;
-          padding: 30px;
+          max-width: 480px;
+          padding: 40px 36px 36px;
           border-radius: 28px;
-          background: rgba(14, 14, 14, 0.72);
+          background: rgba(14, 14, 14, 0.80);
           color: #f4f4f4;
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          box-shadow: 0 24px 80px rgba(0, 0, 0, 0.38);
-          backdrop-filter: blur(18px) saturate(140%);
+          border: 1px solid rgba(255, 255, 255, 0.10);
+          box-shadow: 0 32px 96px rgba(0, 0, 0, 0.48), 0 0 0 1px rgba(86, 224, 131, 0.07);
+          backdrop-filter: blur(24px) saturate(160%);
+          text-align: center;
+        }
+
+        /* animated envelope */
+        .verify-icon-wrap {
+          position: relative;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 24px;
+        }
+
+        .verify-envelope {
+          width: 64px;
+          height: 64px;
+          color: rgba(244, 244, 244, 0.72);
+          transition: color 400ms ease;
+        }
+
+        .verify-envelope.verified {
+          color: #56e083;
+        }
+
+        .verify-checkmark {
+          stroke-dasharray: 30;
+          stroke-dashoffset: 30;
+          animation: verify-draw 0.5s ease forwards;
+        }
+
+        @keyframes verify-draw {
+          to { stroke-dashoffset: 0; }
+        }
+
+        .verify-pulse-ring {
+          position: absolute;
+          inset: -14px;
+          border-radius: 999px;
+          border: 2px solid rgba(86, 224, 131, 0.28);
+          animation: verify-pulse 2.2s ease-in-out infinite;
+        }
+
+        @keyframes verify-pulse {
+          0%   { transform: scale(0.88); opacity: 0.9; }
+          50%  { transform: scale(1.06); opacity: 0.3; }
+          100% { transform: scale(0.88); opacity: 0.9; }
         }
 
         .verify-kicker {
@@ -2842,7 +2921,7 @@ export default function App() {
           align-items: center;
           gap: 8px;
           border-radius: 999px;
-          padding: 6px 12px;
+          padding: 5px 12px;
           background: rgba(86, 224, 131, 0.12);
           color: #9af0b5;
           border: 1px solid rgba(86, 224, 131, 0.22);
@@ -2850,74 +2929,104 @@ export default function App() {
           font-weight: 800;
           letter-spacing: 0.12em;
           text-transform: uppercase;
-          margin-bottom: 16px;
+          margin-bottom: 14px;
         }
 
         .verify-card h2 {
-          margin: 0 0 10px;
+          margin: 0 0 12px;
           font-family: 'Space Grotesk', sans-serif;
-          font-size: 28px;
-          line-height: 1.15;
+          font-size: 26px;
+          line-height: 1.18;
           letter-spacing: -0.03em;
         }
 
-        .verify-card p {
-          margin: 0;
-          color: rgba(244, 244, 244, 0.76);
+        .verify-sub {
+          margin: 0 0 4px;
+          color: rgba(244, 244, 244, 0.70);
           font-size: 14px;
           line-height: 22px;
+        }
+
+        .verify-email-highlight {
+          color: #9af0b5;
+          word-break: break-all;
         }
 
         .verify-status-card {
           display: flex;
           align-items: center;
           gap: 14px;
-          margin: 22px 0;
-          padding: 18px;
-          border-radius: 18px;
+          margin: 22px 0 0;
+          padding: 16px 18px;
+          border-radius: 16px;
           background: rgba(255, 255, 255, 0.06);
           border: 1px solid rgba(255, 255, 255, 0.08);
+          text-align: left;
+          transition: background 400ms ease, border-color 400ms ease;
+        }
+
+        .verify-status-card.verified {
+          background: rgba(86, 224, 131, 0.08);
+          border-color: rgba(86, 224, 131, 0.22);
         }
 
         .verify-status-dot {
-          width: 14px;
-          height: 14px;
+          width: 12px;
+          height: 12px;
           border-radius: 999px;
-          background: rgba(255, 255, 255, 0.4);
-          box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.06);
           flex-shrink: 0;
+          transition: background 400ms ease, box-shadow 400ms ease;
         }
 
         .verify-status-dot.verifying {
           background: #f9c74f;
-          box-shadow: 0 0 0 6px rgba(249, 199, 79, 0.14);
+          box-shadow: 0 0 0 5px rgba(249, 199, 79, 0.18);
+          animation: verify-dot-blink 1.4s ease-in-out infinite;
+        }
+
+        @keyframes verify-dot-blink {
+          0%, 100% { opacity: 1; }
+          50%       { opacity: 0.35; }
         }
 
         .verify-status-dot.verified {
           background: #56e083;
-          box-shadow: 0 0 0 6px rgba(86, 224, 131, 0.14);
-        }
-
-        .verify-status-card strong,
-        .verify-status-card span {
-          display: block;
-        }
-
-        .verify-status-card strong {
-          margin-bottom: 2px;
-          font-size: 14px;
+          box-shadow: 0 0 0 5px rgba(86, 224, 131, 0.18);
+          animation: none;
         }
 
         .verify-status-card span {
-          font-size: 12px;
-          color: rgba(244, 244, 244, 0.62);
+          font-size: 13px;
+          color: rgba(244, 244, 244, 0.72);
+          line-height: 1.5;
         }
 
         .verify-actions {
           display: flex;
           flex-wrap: wrap;
-          gap: 12px;
-          margin-top: 24px;
+          gap: 10px;
+          margin-top: 20px;
+          justify-content: center;
+        }
+
+        .verify-back-button {
+          color: rgba(244, 244, 244, 0.52) !important;
+          border-color: rgba(255, 255, 255, 0.08) !important;
+          background: transparent !important;
+          font-size: 12px !important;
+        }
+
+        .verify-resent-notice {
+          margin: 14px 0 0;
+          padding: 10px 14px;
+          border-radius: 12px;
+          background: rgba(86, 224, 131, 0.08);
+          border: 1px solid rgba(86, 224, 131, 0.18);
+          color: #9af0b5;
+          font-size: 12px;
+          line-height: 18px;
+        }
+
         .waitlist-blocked-banner {
           margin: 0 0 18px;
           padding: 12px 14px;
@@ -2927,8 +3036,6 @@ export default function App() {
           color: #d6ffe2;
           font-size: 13px;
           line-height: 20px;
-        }
-
         }
 
         @media (max-width: 640px) {
