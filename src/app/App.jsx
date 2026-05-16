@@ -1133,6 +1133,7 @@ function DemoPage({ push }) {
   const RELAY_URL = process.env.NEXT_PUBLIC_RELAY_URL || '';
   const [welcomeOpen, setWelcomeOpen] = useState(true);
   const [conversationOpen, setConversationOpen] = useState(false);
+  const [isMobileConversationView, setIsMobileConversationView] = useState(false);
   const [sessionState, setSessionState] = useState('idle');
   const [timeLeft, setTimeLeft] = useState(300);
   const [endOpen, setEndOpen] = useState(false);
@@ -1417,6 +1418,27 @@ function DemoPage({ push }) {
   }, [transcript, conversationOpen]);
 
   useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 760px)');
+    const syncConversationLayout = (event) => {
+      const mobile = event.matches;
+      setIsMobileConversationView(mobile);
+      if (!mobile) {
+        setConversationOpen(false);
+      }
+    };
+
+    syncConversationLayout(mediaQuery);
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', syncConversationLayout);
+      return () => mediaQuery.removeEventListener('change', syncConversationLayout);
+    }
+
+    mediaQuery.addListener(syncConversationLayout);
+    return () => mediaQuery.removeListener(syncConversationLayout);
+  }, []);
+
+  useEffect(() => {
     const onBeforeUnload = () => {
       if (!didEndRef.current && sessionStateRef.current === 'active') {
         sendWsMessage({ type: 'disconnect' });
@@ -1679,20 +1701,22 @@ function DemoPage({ push }) {
       <main className={`demo-console-shell ${welcomeOpen ? 'blurred' : ''}`}>
       </main>
 
-      <button
-        type="button"
-        className="demo-conversation-toggle"
-        aria-expanded={conversationOpen}
-        aria-controls="demo-conversation-drawer"
-        onClick={() => setConversationOpen((previous) => !previous)}
-      >
-        {conversationOpen ? 'Hide conversation' : 'Show conversation'}
-      </button>
+      {isMobileConversationView ? (
+        <button
+          type="button"
+          className="demo-conversation-toggle"
+          aria-expanded={conversationOpen}
+          aria-controls="demo-conversation-drawer"
+          onClick={() => setConversationOpen((previous) => !previous)}
+        >
+          {conversationOpen ? 'Hide conversation' : 'Show conversation'}
+        </button>
+      ) : null}
 
       <aside
         id="demo-conversation-drawer"
-        className={`demo-conversation-drawer ${conversationOpen ? 'open' : ''}`}
-        aria-hidden={!conversationOpen}
+        className={`demo-conversation-drawer ${!isMobileConversationView || conversationOpen ? 'open' : ''}`}
+        aria-hidden={isMobileConversationView ? !conversationOpen : false}
       >
         <section className="console-chat-premium">
           <div className="console-chat-head">
@@ -3433,25 +3457,25 @@ export default function App() {
 
         .demo-conversation-drawer {
           position: fixed;
-          left: 24px;
+          top: 80px;
           right: 24px;
-          bottom: 56px;
+          bottom: 24px;
+          left: auto;
           z-index: 23;
-          max-width: 420px;
-          margin-left: auto;
-          transform: translateY(calc(100% + 32px));
-          opacity: 0;
-          pointer-events: none;
+          width: min(400px, calc(100vw - 48px));
+          transform: none;
+          opacity: 1;
+          pointer-events: auto;
           transition: transform 200ms ease, opacity 200ms ease;
-          height: min(62vh, 520px);
-          max-height: min(62vh, 520px);
-          min-height: 260px;
+          height: auto;
+          max-height: none;
+          min-height: 0;
           display: flex;
           flex-direction: column;
         }
 
         .demo-conversation-drawer.open {
-          transform: translateY(0);
+          transform: none;
           opacity: 1;
           pointer-events: auto;
         }
@@ -4144,8 +4168,10 @@ export default function App() {
           .demo-conversation-drawer {
             left: 16px;
             right: 16px;
+            top: auto;
             max-width: none;
             min-height: 240px;
+            width: auto;
           }
         }
 
@@ -4190,9 +4216,11 @@ export default function App() {
           .demo-conversation-drawer {
             left: 12px;
             right: 12px;
+            top: auto;
             bottom: 58px;
             height: min(58vh, 500px);
             max-height: min(58vh, 500px);
+            width: auto;
           }
 
           .demo-conversation-drawer .console-chat-premium {

@@ -5,24 +5,30 @@
 <title>ADAM — Sleep</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
+  html {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+  }
   body {
-    background: #000;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100vh;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
     font-family: monospace;
+    overflow: hidden;
+    background: transparent;
   }
   .label {
-    color: #fff;
-    font-size: 11px;
-    letter-spacing: 6px;
-    text-transform: uppercase;
-    margin-bottom: 28px;
-    opacity: 0.3;
+    display: none;
   }
-  svg { width: 340px; height: 220px; overflow: visible; }
+  svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+    overflow: visible;
+  }
 
   .face { animation: breathe 5s ease-in-out infinite; transform-origin: 160px 100px; }
   .zzz-1 { animation: zzz-float 4s ease-in-out infinite; }
@@ -64,13 +70,13 @@
 
   <!-- ZZZ floating sequence -->
   <g class="zzz-1">
-    <text x="250" y="76" fill="#fff" font-size="16" font-family="monospace" opacity="0.8" font-weight="bold">z</text>
+    <text x="250" y="76" fill="#fff" font-size="40" font-family="monospace" opacity="0.8" font-weight="bold">z</text>
   </g>
   <g class="zzz-2">
-    <text x="264" y="60" fill="#fff" font-size="12" font-family="monospace" opacity="0.55">z</text>
+    <text x="264" y="60" fill="#fff" font-size="30" font-family="monospace" opacity="0.55">z</text>
   </g>
   <g class="zzz-3">
-    <text x="276" y="48" fill="#fff" font-size="9" font-family="monospace" opacity="0.3">z</text>
+    <text x="276" y="48" fill="#fff" font-size="20" font-family="monospace" opacity="0.3">z</text>
   </g>
 </svg>
 </body>
