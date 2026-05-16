@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ArrowRight, Mail, MessageCircle, User, X } from 'lucide-react';
-import { createUserWithEmailAndPassword, isSignInWithEmailLink, onAuthStateChanged, sendSignInLinkToEmail, signInWithEmailLink, signInWithPopup, updateProfile } from 'firebase/auth';
+import { createUserWithEmailAndPassword, isSignInWithEmailLink, onAuthStateChanged, sendEmailVerification, sendSignInLinkToEmail, signInWithEmailLink, signInWithPopup, updateProfile } from 'firebase/auth';
 import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { getClientAuth, getClientDb, googleProvider, isFirebaseConfigured } from '@/lib/firebase';
 
@@ -438,7 +438,7 @@ function FooterBar() {
 }
 
 function LoginPage({ push }) {
-  const { setAuthToken, setUserId, setEmail, setOnboardingData, setOnboardingComplete } = useAppContext();
+  const { setAuthToken, setUserId, setEmail, setPendingEmail, setOnboardingData, setOnboardingComplete, setAccountStatus } = useAppContext();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [emailValue, setEmailValue] = useState('');
@@ -475,13 +475,28 @@ function LoginPage({ push }) {
           await updateProfile(credential.user, { displayName: fullName });
         }
 
+        await sendEmailVerification(credential.user, {
+          url: buildEmailActionUrl(),
+        });
+
+        savePendingEmail(emailValue);
+        setPendingEmail(emailValue);
+
         setAuthToken(await credential.user.getIdToken());
         setUserId(credential.user.uid);
         setEmail(credential.user.email || emailValue);
         setOnboardingComplete(false);
+        setAccountStatus({
+          loaded: true,
+          emailVerified: false,
+          demoUsed: false,
+          waitlistFilled: false,
+          tester: false,
+          onboardingComplete: false,
+        });
         setOnboardingData((prev) => ({ ...prev, name: fullName }));
         setLoading(false);
-        push('/onboarding');
+        push('/verify-email');
         return;
       } catch (authError) {
         const code = authError?.code || '';
@@ -491,6 +506,8 @@ function LoginPage({ push }) {
           setError('Password must be at least 6 characters.');
         } else if (code === 'auth/invalid-email') {
           setError('Enter a valid email address.');
+        } else if (code === 'auth/too-many-requests') {
+          setError('Too many attempts. Please wait a minute and try again.');
         } else {
           setError('Authentication failed. Please try again.');
         }
@@ -703,6 +720,172 @@ function LoginPage({ push }) {
             </form>
           </div>
         </div>
+      </section>
+    </main>
+  );
+}
+
+function VerifyEmailPage({ push }) {
+  const {
+    authToken,
+    pendingEmail,
+    email,
+    setPendingEmail,
+    setAuthToken,
+    setUserId,
+    setEmail,
+    setOnboardingComplete,
+    setAccountStatus,
+  } = useAppContext();
+  const [checking, setChecking] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('Please verify your email and then click I have verified.');
+
+  const activeEmail = email || pendingEmail || '';
+
+  const resolveNextRoute = (status) => {
+    if (status.demoUsed && !status.tester) {
+      return '/waitlist';
+    }
+
+    if (status.onboardingComplete) {
+      return '/demo';
+    }
+
+    return '/onboarding';
+  };
+
+  const checkVerification = async () => {
+    setError('');
+    setChecking(true);
+
+    if (FIREBASE_ENABLED) {
+      try {
+        const auth = getClientAuth();
+        const user = auth.currentUser;
+
+        if (!user) {
+          setError('Session expired. Please sign in again.');
+          setChecking(false);
+          return;
+        }
+
+        await user.reload();
+
+        if (!user.emailVerified) {
+          setNotice('Email not verified yet. Open your inbox and click the verification link.');
+          setChecking(false);
+          return;
+        }
+
+        const token = await user.getIdToken(true);
+        const accountStatusResp = await apiAccountStatus({ idToken: token });
+        const nextStatus = {
+          loaded: true,
+          emailVerified: true,
+          demoUsed: Boolean(accountStatusResp.data?.demoUsed),
+          waitlistFilled: Boolean(accountStatusResp.data?.waitlistFilled),
+          tester: Boolean(accountStatusResp.data?.tester),
+          onboardingComplete: Boolean(accountStatusResp.data?.onboardingComplete),
+        };
+
+        clearPendingEmail();
+        setPendingEmail('');
+        setAuthToken(token);
+        setUserId(user.uid);
+        setEmail(user.email || activeEmail);
+        setOnboardingComplete(nextStatus.onboardingComplete);
+        setAccountStatus(nextStatus);
+        setChecking(false);
+        push(resolveNextRoute(nextStatus));
+        return;
+      } catch (_error) {
+        setError('Unable to verify right now. Please try again.');
+        setChecking(false);
+        return;
+      }
+    }
+
+    const statusResp = await apiAccountStatus({ email: activeEmail || 'mock.user@example.com', token: authToken || 'mock-token' });
+    const nextStatus = {
+      loaded: true,
+      emailVerified: true,
+      demoUsed: Boolean(statusResp.data?.demoUsed),
+      waitlistFilled: Boolean(statusResp.data?.waitlistFilled),
+      tester: Boolean(statusResp.data?.tester),
+      onboardingComplete: Boolean(statusResp.data?.onboardingComplete),
+    };
+
+    clearPendingEmail();
+    setPendingEmail('');
+    setAccountStatus(nextStatus);
+    setOnboardingComplete(nextStatus.onboardingComplete);
+    setChecking(false);
+    push(resolveNextRoute(nextStatus));
+  };
+
+  const resendVerificationEmail = async () => {
+    setError('');
+    setResending(true);
+
+    if (FIREBASE_ENABLED) {
+      try {
+        const user = getClientAuth().currentUser;
+        if (!user) {
+          setError('Session expired. Please sign in again.');
+          setResending(false);
+          return;
+        }
+
+        await sendEmailVerification(user, {
+          url: buildEmailActionUrl(),
+        });
+        setNotice('Verification email sent. Please check your inbox and spam folder.');
+        setResending(false);
+        return;
+      } catch (_error) {
+        setError('Could not resend verification email right now.');
+        setResending(false);
+        return;
+      }
+    }
+
+    await apiSendEmailLink({ email: activeEmail });
+    setNotice('Verification email sent (mock).');
+    setResending(false);
+  };
+
+  return (
+    <main className="site-root">
+      <div className="premium-gradient-bg" aria-hidden="true" />
+      <HeaderBar />
+
+      <section className="verify-page-root">
+        <article className="verify-card">
+          <p className="verify-kicker">Email Verification Required</p>
+          <h2>Check your email to continue</h2>
+          <p>
+            We sent a verification link to <strong>{activeEmail || 'your email address'}</strong>.
+            Verify your email, then click the button below.
+          </p>
+
+          <div className="verify-status-card" role="status" aria-live="polite">
+            <span className={`verify-status-dot ${checking ? 'verifying' : ''}`} aria-hidden="true" />
+            <span>{checking ? 'Checking verification status...' : notice}</span>
+          </div>
+
+          {error ? <p className="error-text dark">{error}</p> : null}
+
+          <div className="verify-actions">
+            <button className="btn-primary verify-primary-button" type="button" disabled={checking} onClick={checkVerification}>
+              {checking ? 'Checking...' : 'I Have Verified'}
+            </button>
+            <button className="verify-ghost-button" type="button" disabled={resending || checking} onClick={resendVerificationEmail}>
+              {resending ? 'Resending...' : 'Resend Email'}
+            </button>
+          </div>
+        </article>
       </section>
     </main>
   );
@@ -2097,6 +2280,11 @@ function RouterView() {
       return;
     }
 
+    if (accountStatus.loaded && !accountStatus.emailVerified) {
+      push('/verify-email');
+      return;
+    }
+
     push(onboardingComplete ? '/demo' : '/onboarding');
   }, [accountStatus, authReady, authToken, onboardingComplete, push, route]);
 
@@ -2116,6 +2304,12 @@ function RouterView() {
     if (!authToken) {
       return <LoginPage push={push} />;
     }
+    if (!accountStatus.loaded) {
+      return null;
+    }
+    if (!accountStatus.emailVerified) {
+      return <VerifyEmailPage push={push} />;
+    }
     if (accountStatus.loaded && accountStatus.demoUsed && !accountStatus.tester) {
       return <WaitlistPage push={push} />;
     }
@@ -2125,6 +2319,12 @@ function RouterView() {
   if (route === '/demo') {
     if (!userId) {
       return <LoginPage push={push} />;
+    }
+    if (!accountStatus.loaded) {
+      return null;
+    }
+    if (!accountStatus.emailVerified) {
+      return <VerifyEmailPage push={push} />;
     }
     if (accountStatus.loaded && accountStatus.demoUsed && !accountStatus.tester) {
       return <WaitlistPage push={push} />;
