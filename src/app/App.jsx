@@ -1429,6 +1429,52 @@ function formatRemaining(totalSeconds) {
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
+const BG2_FACE_RECT = {
+  x: 580 / 1672,
+  y: 254 / 940,
+  w: 177 / 1672,
+  h: 128 / 940,
+};
+
+function mapRelayEmotionToFileName(value) {
+  const emotion = String(value || '').trim().toLowerCase();
+
+  switch (emotion) {
+    case 'angry':
+    case 'confused':
+    case 'happy':
+    case 'ideal':
+    case 'love':
+    case 'panic':
+    case 'reconnecting':
+    case 'rizz':
+    case 'sad':
+    case 'search-thinking':
+    case 'shy':
+    case 'sleep':
+    case 'speeking':
+    case 'surprised':
+      return emotion;
+    case 'thinking':
+      return 'search-thinking';
+    case 'smug':
+      return 'rizz';
+    case 'blush':
+      return 'shy';
+    case 'excited':
+      return 'happy';
+    case 'idle':
+    case 'default':
+    case 'listening':
+    case 'none':
+      return 'ideal';
+    case 'speaking':
+      return 'speeking';
+    default:
+      return 'ideal';
+  }
+}
+
 function pcm16ToBase64(float32Samples) {
   const pcm16 = new Int16Array(float32Samples.length);
   for (let i = 0; i < float32Samples.length; i += 1) {
@@ -1475,6 +1521,14 @@ function DemoPage({ push }) {
   const [transcript, setTranscript] = useState([]);
   const [micPermission, setMicPermission] = useState('requesting');
   const [adamSpeaking, setAdamSpeaking] = useState(false);
+  const [mouthSyncActive, setMouthSyncActive] = useState(false);
+  const [baseEmotion, setBaseEmotion] = useState('ideal');
+  const [emotionLayerStyle, setEmotionLayerStyle] = useState({
+    left: '34.69%',
+    top: '27.02%',
+    width: '10.59%',
+    height: '13.62%',
+  });
   const [isRecording, setIsRecording] = useState(false);
   const [connectingStatus, setConnectingStatus] = useState('');
 
@@ -1493,6 +1547,12 @@ function DemoPage({ push }) {
   const speakerCtxRef = useRef(null);
   const nextSpeakerStartRef = useRef(0);
   const speechEndTimerRef = useRef(null);
+  const mouthSyncTimerRef = useRef(null);
+  const faceAreaRef = useRef(null);
+  const bgImageRef = useRef(null);
+  const emotionIframeRef = useRef(null);
+
+  const visibleEmotion = adamSpeaking || mouthSyncActive ? 'speeking' : baseEmotion;
 
   const cleanupMicCapture = () => {
     if (micProcessorRef.current) {
@@ -1527,6 +1587,46 @@ function DemoPage({ push }) {
     setAdamSpeaking(false);
   };
 
+  const clearMouthSyncTimer = () => {
+    if (!mouthSyncTimerRef.current) {
+      return;
+    }
+    clearTimeout(mouthSyncTimerRef.current);
+    mouthSyncTimerRef.current = null;
+  };
+
+  const updateEmotionLayerPosition = () => {
+    const container = faceAreaRef.current;
+    const bg = bgImageRef.current;
+    if (!container || !bg || !bg.naturalWidth || !bg.naturalHeight) {
+      return;
+    }
+
+    const cw = container.clientWidth;
+    const ch = container.clientHeight;
+    const nw = bg.naturalWidth;
+    const nh = bg.naturalHeight;
+
+    // Keep overlay locked to bg2.png face location under object-fit: cover.
+    const scale = Math.max(cw / nw, ch / nh);
+    const renderW = nw * scale;
+    const renderH = nh * scale;
+    const offsetX = (cw - renderW) / 2;
+    const offsetY = (ch - renderH) / 2;
+
+    const left = offsetX + BG2_FACE_RECT.x * renderW;
+    const top = offsetY + BG2_FACE_RECT.y * renderH;
+    const width = BG2_FACE_RECT.w * renderW;
+    const height = BG2_FACE_RECT.h * renderH;
+
+    setEmotionLayerStyle({
+      left: `${left}px`,
+      top: `${top}px`,
+      width: `${width}px`,
+      height: `${height}px`,
+    });
+  };
+
   useEffect(() => {
     sessionStateRef.current = sessionState;
   }, [sessionState]);
@@ -1543,7 +1643,94 @@ function DemoPage({ push }) {
     adamSpeakingRef.current = adamSpeaking;
   }, [adamSpeaking]);
 
+  useEffect(() => {
+    const iframe = emotionIframeRef.current;
+    if (!iframe) {
+      return undefined;
+    }
+
+    const handleIframeLoad = () => {
+      try {
+        const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+        if (!iframeDoc) {
+          return;
+        }
+
+        const style = iframeDoc.createElement('style');
+        style.textContent = `
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #000 !important;
+}
+
+body {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+svg {
+  width: 100% !important;
+  height: 100% !important;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) !important;
+}
+
+.label {
+  display: none !important;
+}
+
+::-webkit-scrollbar {
+  display: none;
+}
+`;
+        iframeDoc.head.appendChild(style);
+      } catch (_error) {
+        // Ignore sandbox/cross-origin edge cases.
+      }
+    };
+
+    iframe.addEventListener('load', handleIframeLoad);
+    return () => iframe.removeEventListener('load', handleIframeLoad);
+  }, [visibleEmotion]);
+
+  useEffect(() => {
+    const bg = bgImageRef.current;
+    const container = faceAreaRef.current;
+    if (!bg || !container) {
+      return undefined;
+    }
+
+    if (bg.complete) {
+      updateEmotionLayerPosition();
+    }
+
+    bg.addEventListener('load', updateEmotionLayerPosition);
+    window.addEventListener('resize', updateEmotionLayerPosition);
+
+    let resizeObserver;
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(() => updateEmotionLayerPosition());
+      resizeObserver.observe(container);
+    }
+
+    return () => {
+      bg.removeEventListener('load', updateEmotionLayerPosition);
+      window.removeEventListener('resize', updateEmotionLayerPosition);
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
+    };
+  }, []);
+
   const stopRealtimeResources = () => {
+    clearMouthSyncTimer();
+    setMouthSyncActive(false);
     cleanupMicCapture();
     cleanupSpeaker();
     if (wsRef.current) {
@@ -1767,6 +1954,8 @@ function DemoPage({ push }) {
     return () => mediaQuery.removeListener(syncConversationLayout);
   }, []);
 
+  useEffect(() => () => clearMouthSyncTimer(), []);
+
   useEffect(() => {
     const onBeforeUnload = () => {
       if (!didEndRef.current && sessionStateRef.current === 'active') {
@@ -1790,6 +1979,9 @@ function DemoPage({ push }) {
     setSessionState('connecting');
     setConnectingStatus('Requesting microphone access…');
     setErrorMsg('');
+    setBaseEmotion('ideal');
+    setMouthSyncActive(false);
+    clearMouthSyncTimer();
 
     // Fire mic permission dialog immediately — runs in parallel with API calls
     if (!micStreamRef.current) {
@@ -1914,9 +2106,35 @@ function DemoPage({ push }) {
           return;
         }
 
+        if (incoming.type === 'emotion') {
+          setBaseEmotion(mapRelayEmotionToFileName(incoming.emotion));
+          return;
+        }
+
+        if (incoming.type === 'mouth_sync') {
+          const intensity = String(incoming.intensity || 'closed').toLowerCase();
+          if (intensity === 'closed') {
+            clearMouthSyncTimer();
+            setMouthSyncActive(false);
+            return;
+          }
+
+          setMouthSyncActive(true);
+          clearMouthSyncTimer();
+          mouthSyncTimerRef.current = setTimeout(() => {
+            setMouthSyncActive(false);
+            mouthSyncTimerRef.current = null;
+          }, 260);
+          return;
+        }
+
         if (incoming.type === 'face_state') {
           const speaking = incoming.state === 'speaking';
           setAdamSpeaking(speaking);
+          if (!speaking) {
+            clearMouthSyncTimer();
+            setMouthSyncActive(false);
+          }
           if (!speaking && sessionState === 'active' && micPermission === 'granted') {
             setIsRecording(true);
           }
@@ -1925,6 +2143,8 @@ function DemoPage({ push }) {
 
         if (incoming.type === 'turn_complete') {
           setAdamSpeaking(false);
+          clearMouthSyncTimer();
+          setMouthSyncActive(false);
           setTranscript((prev) => {
             const last = prev[prev.length - 1];
             if (!last || last.speaker !== 'ADAM' || !last.inProgress) {
@@ -1947,6 +2167,8 @@ function DemoPage({ push }) {
         }
 
         if (incoming.type === 'session_end') {
+          clearMouthSyncTimer();
+          setMouthSyncActive(false);
           closeSession(incoming.reason || 'cap_reached', false);
           return;
         }
@@ -2028,6 +2250,54 @@ function DemoPage({ push }) {
       </header>
 
       <main className={`demo-console-shell ${welcomeOpen ? 'blurred' : ''}`}>
+        <section className="demo-console-center" aria-label="ADAM visual stage">
+          <article className="demo-hero-panel">
+            <div ref={faceAreaRef} className="demo-face-area">
+              <img
+                ref={bgImageRef}
+                src="/images/bg2.png"
+                alt="ADAM demo background"
+                className="demo-face-bg"
+              />
+
+              <div className="demo-face-emotion-layer" style={emotionLayerStyle}>
+                <iframe
+                  ref={emotionIframeRef}
+                  key={visibleEmotion}
+                  src={`/emotions/${visibleEmotion}.html`}
+                  className="demo-face-emotion-iframe"
+                  title={`${visibleEmotion} emotion`}
+                  scrolling="no"
+                  sandbox="allow-same-origin allow-scripts"
+                />
+              </div>
+            </div>
+
+            <div className="demo-hero-bottom-bar">
+              <div>
+                <div className="demo-hero-label">ADAM State</div>
+                <div className="demo-hero-value">
+                  {adamSpeaking
+                    ? 'Speaking'
+                    : isRecording
+                      ? 'Listening'
+                      : sessionState === 'active'
+                        ? 'Ready'
+                        : 'Standby'}
+                </div>
+              </div>
+
+              <div className="demo-hero-waveform" style={{ opacity: adamSpeaking ? 1 : 0.35 }} aria-hidden="true">
+                <span />
+                <span />
+                <span />
+                <span />
+                <span />
+                <span />
+              </div>
+            </div>
+          </article>
+        </section>
       </main>
 
       {isMobileConversationView ? (
@@ -4353,6 +4623,7 @@ export default function App() {
         }
 
         .demo-console-center {
+          grid-column: 1 / span 2;
           min-width: 0;
           display: flex;
           flex-direction: column;
@@ -4373,6 +4644,50 @@ export default function App() {
           box-shadow: 0 10px 32px rgba(0, 0, 0, 0.16);
           backdrop-filter: blur(12px);
           -webkit-backdrop-filter: blur(12px);
+        }
+
+        .demo-face-area {
+          flex: 1;
+          min-height: 0;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .demo-face-bg {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          object-position: center;
+          display: block;
+          z-index: 1;
+        }
+
+        .demo-face-emotion-layer {
+          position: absolute;
+          background: #000;
+          border-radius: 50%;
+          overflow: hidden;
+          z-index: 2;
+          clip-path: ellipse(50% 50% at 50% 50%);
+          box-shadow: 0 0 20px rgba(0, 0, 0, 0.8), inset 0 0 10px rgba(0, 0, 0, 0.5);
+          pointer-events: none;
+        }
+
+        .demo-face-emotion-iframe {
+          width: 100%;
+          height: 100%;
+          border: 0;
+          background: transparent;
+          display: block;
+          overflow: hidden;
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+
+        .demo-face-emotion-iframe::-webkit-scrollbar {
+          display: none;
         }
 
         .demo-hero-image-wrap {
@@ -4831,6 +5146,7 @@ export default function App() {
           }
 
           .demo-console-center {
+            grid-column: auto;
             order: 0;
             min-height: 560px;
           }
