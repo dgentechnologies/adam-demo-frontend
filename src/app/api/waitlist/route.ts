@@ -2,7 +2,11 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest } from 'next/server';
 import { FieldValue } from 'firebase-admin/firestore';
+import { Resend } from 'resend';
 import { adminDb } from '@/lib/firebaseAdmin';
+import { buildWaitlistConfirmationEmail } from '@/lib/emails/waitlistConfirmation';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_FIELD_LENGTH = 300;
@@ -55,9 +59,11 @@ export async function POST(req: NextRequest) {
       return Response.json({ success: true, alreadyRegistered: true, alreadyFilled: true });
     }
 
+    const safeName = normalizeField(body.name);
+
     await collectionRef.add({
       email: normalizedEmail,
-      name: normalizeField(body.name),
+      name: safeName,
       company: normalizeField(body.company),
       feedback: normalizeField(body.use_case, 800),
       referral: normalizeField(body.referral),
@@ -65,6 +71,21 @@ export async function POST(req: NextRequest) {
       signedUpAt: FieldValue.serverTimestamp(),
       confirmed: false,
     });
+
+    // Send confirmation email to the user (fire-and-forget; never block the response)
+    const fromEmail = process.env.RESEND_FROM_EMAIL ?? 'hello@dgentechnologies.com';
+    const { error: emailError } = await resend.emails.send({
+      from: `ADAM by DGEN <${fromEmail}>`,
+      to: [normalizedEmail],
+      subject: "You're on the ADAM Waitlist ✓",
+      html: buildWaitlistConfirmationEmail(safeName),
+      tags: [{ name: 'category', value: 'waitlist-confirmation' }],
+    });
+
+    if (emailError) {
+      // Log but don't surface to the client — signup already succeeded
+      console.error('[waitlist] Confirmation email failed:', emailError);
+    }
 
     return Response.json({ success: true });
   } catch (error) {
