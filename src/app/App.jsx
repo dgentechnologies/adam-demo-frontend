@@ -429,8 +429,8 @@ function FooterBar() {
     <footer className="footer-shell">
       <span>© 2024 Dgen Technologies. All rights reserved.</span>
       <div className="footer-links">
-        <a href="#">Privacy Policy</a>
-        <a href="#">Terms of Service</a>
+        <a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>
+        <a href="/terms" target="_blank" rel="noopener noreferrer">Terms of Service</a>
         <a href="#">Contact Support</a>
       </div>
     </footer>
@@ -708,7 +708,7 @@ function LoginPage({ push }) {
               <label className="terms-row">
                 <input type="checkbox" checked={termsAccepted} onChange={(e) => setTermsAccepted(e.target.checked)} />
                 <span>
-                  I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.
+                  I agree to the <a href="/terms" target="_blank" rel="noopener noreferrer">Terms of Service</a> and <a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>.
                 </span>
               </label>
 

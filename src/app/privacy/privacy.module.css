@@ -1,0 +1,123 @@
+.container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+  padding: 40px 20px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  color: #e0e0e0;
+}
+
+.content {
+  max-width: 900px;
+  margin: 0 auto;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(76, 175, 80, 0.2);
+  border-radius: 12px;
+  padding: 60px 40px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #4caf80;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 40px;
+  transition: color 0.2s ease;
+  cursor: pointer;
+}
+
+.backLink:hover {
+  color: #66bb6a;
+}
+
+h1 {
+  font-size: 48px;
+  font-weight: 700;
+  margin-bottom: 40px;
+  background: linear-gradient(135deg, #4caf80 0%, #81c784 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -1.5px;
+}
+
+.section {
+  margin-bottom: 40px;
+  line-height: 1.8;
+}
+
+.section h2 {
+  font-size: 24px;
+  font-weight: 600;
+  color: #4caf80;
+  margin-bottom: 16px;
+  margin-top: 24px;
+}
+
+.section h3 {
+  font-size: 18px;
+  font-weight: 500;
+  color: #81c784;
+  margin: 16px 0 12px 0;
+}
+
+.section p {
+  font-size: 15px;
+  color: #b0b0b0;
+  margin-bottom: 12px;
+}
+
+.section ul {
+  list-style: none;
+  padding-left: 0;
+  margin: 12px 0;
+}
+
+.section li {
+  font-size: 15px;
+  color: #b0b0b0;
+  margin-bottom: 8px;
+  padding-left: 24px;
+  position: relative;
+}
+
+.section li::before {
+  content: '•';
+  position: absolute;
+  left: 8px;
+  color: #4caf80;
+  font-weight: bold;
+}
+
+.footer {
+  margin-top: 60px;
+  padding-top: 30px;
+  border-top: 1px solid rgba(76, 175, 80, 0.2);
+  text-align: center;
+  font-size: 13px;
+  color: #888;
+}
+
+@media (max-width: 768px) {
+  .content {
+    padding: 40px 24px;
+  }
+
+  h1 {
+    font-size: 32px;
+    margin-bottom: 30px;
+  }
+
+  .section h2 {
+    font-size: 20px;
+  }
+
+  .section p,
+  .section li {
+    font-size: 14px;
+  }
+}
