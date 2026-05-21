@@ -11,7 +11,7 @@ export default function Terms() {
           ← Back to Login
         </Link>
 
-        <h1>Terms and Conditions</h1>
+        <h1 className={styles.title}>Terms and Conditions</h1>
         
         <div className={styles.section}>
           <h2>1. Acceptance of Terms</h2>

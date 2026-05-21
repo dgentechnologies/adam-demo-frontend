@@ -11,7 +11,7 @@ export default function Privacy() {
           ← Back to Login
         </Link>
 
-        <h1>Privacy Policy</h1>
+        <h1 className={styles.title}>Privacy Policy</h1>
 
         <div className={styles.section}>
           <h2>1. Introduction</h2>

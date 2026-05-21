@@ -34,7 +34,7 @@
   color: #66bb6a;
 }
 
-h1 {
+.title {
   font-size: 48px;
   font-weight: 700;
   margin-bottom: 40px;
@@ -107,7 +107,7 @@ h1 {
     padding: 40px 24px;
   }
 
-  h1 {
+  .title {
     font-size: 32px;
     margin-bottom: 30px;
   }
