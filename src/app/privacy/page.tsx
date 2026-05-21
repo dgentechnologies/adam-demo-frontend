@@ -16,7 +16,7 @@ export default function Privacy() {
         <div className={styles.section}>
           <h2>1. Introduction</h2>
           <p>
-            DGEN Technologies Pvt. Ltd. ("we," "us," or "our") operates the ADAM web experience. 
+            Dgen Technologies Pvt. Ltd. ("we," "us," or "our") operates the ADAM web experience. 
             This Privacy Policy explains how we collect, use, disclose, and safeguard your information 
             when you use our service.
           </p>
@@ -90,7 +90,7 @@ export default function Privacy() {
             <li>Secure authentication protocols</li>
             <li>Regular security audits and assessments</li>
             <li>Limited access to personal information (need-to-know basis)</li>
-            <li>Secure data storage with Supabase (ISO 27001 certified)</li>
+            <li>Secure data storage with Firebase services (Google Cloud infrastructure)</li>
           </ul>
           <p>
             However, no security measure is 100% secure. We cannot guarantee absolute security of your data.
@@ -119,8 +119,9 @@ export default function Privacy() {
           </p>
           <ul>
             <li><strong>Google OAuth:</strong> For secure authentication</li>
-            <li><strong>Supabase:</strong> For database and backend services</li>
-            <li><strong>Vercel:</strong> For hosting the web application</li>
+            <li><strong>Firebase:</strong> For authentication and storage services</li>
+            <li><strong>Vercel:</strong> For hosting the frontend application</li>
+            <li><strong>Railway:</strong> For hosting the backend relay/server application</li>
             <li><strong>Google Gemini API:</strong> For AI conversational capabilities (no conversation storage)</li>
           </ul>
           <p>
@@ -148,7 +149,7 @@ export default function Privacy() {
         <div className={styles.section}>
           <h2>8. International Data Transfers</h2>
           <p>
-            Your information may be stored and processed in India and other jurisdictions where DGEN Technologies 
+            Your information may be stored and processed in India and other jurisdictions where Dgen Technologies 
             operates. By using ADAM, you consent to the transfer of your information to countries outside your 
             country of residence, which may have different data protection laws.
           </p>
@@ -178,7 +179,7 @@ export default function Privacy() {
             If you have questions about this Privacy Policy or our privacy practices, please contact us:
           </p>
           <p>
-            <strong>DGEN Technologies Pvt. Ltd.</strong><br />
+            <strong>Dgen Technologies Pvt. Ltd.</strong><br />
             Kolkata, India<br />
             Website: dgentechnologies.com<br />
             Email: contact@dgentechnologies.com

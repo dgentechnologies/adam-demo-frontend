@@ -16,7 +16,7 @@ export default function Terms() {
         <div className={styles.section}>
           <h2>1. Acceptance of Terms</h2>
           <p>
-            By accessing and using the ADAM web experience provided by DGEN Technologies Pvt. Ltd., 
+            By accessing and using the ADAM web experience provided by Dgen Technologies Pvt. Ltd., 
             you agree to comply with and be bound by these Terms and Conditions. If you do not agree 
             with any part of these terms, you may not use this service.
           </p>
@@ -26,7 +26,7 @@ export default function Terms() {
           <h2>2. Service Description</h2>
           <p>
             ADAM (Autonomous Desktop AI Module) is an interactive AI-powered conversational experience 
-            provided by DGEN Technologies. The web demo is a 5-minute session designed to showcase the 
+            provided by Dgen Technologies. The web demo is a 5-minute session designed to showcase the 
             capabilities of the ADAM system.
           </p>
         </div>
@@ -57,7 +57,7 @@ export default function Terms() {
           <h2>5. Data Collection and Use</h2>
           <p>
             <strong>Conversation Privacy:</strong> All conversation data exchanged during your ADAM session 
-            is <strong>completely private and will not be collected or stored by DGEN Technologies</strong>. 
+            is <strong>completely private and will not be collected or stored by Dgen Technologies</strong>. 
             Your conversations are not saved, processed for analysis, or used for any purpose beyond the 
             real-time interaction.
           </p>
@@ -78,7 +78,7 @@ export default function Terms() {
           <h2>6. Intellectual Property</h2>
           <p>
             All content, technology, and materials within the ADAM service are the intellectual property 
-            of DGEN Technologies Pvt. Ltd. You may not reproduce, modify, or distribute any part of this 
+            of Dgen Technologies Pvt. Ltd. You may not reproduce, modify, or distribute any part of this 
             service without explicit permission.
           </p>
         </div>
@@ -86,7 +86,7 @@ export default function Terms() {
         <div className={styles.section}>
           <h2>7. Limitation of Liability</h2>
           <p>
-            DGEN Technologies is provided on an "as-is" basis. DGEN Technologies Pvt. Ltd. is not liable 
+            Dgen Technologies is provided on an "as-is" basis. Dgen Technologies Pvt. Ltd. is not liable 
             for any indirect, incidental, special, or consequential damages arising from the use of this 
             service. In no event shall our total liability exceed the amount paid by you, if any.
           </p>
@@ -95,7 +95,7 @@ export default function Terms() {
         <div className={styles.section}>
           <h2>8. Modification of Service</h2>
           <p>
-            DGEN Technologies reserves the right to modify or discontinue the ADAM service at any time 
+            Dgen Technologies reserves the right to modify or discontinue the ADAM service at any time 
             without notice. We shall not be liable to you or any third party for any modification, 
             suspension, or discontinuation of the service.
           </p>
@@ -115,7 +115,7 @@ export default function Terms() {
             For questions regarding these Terms and Conditions, please contact us at:
           </p>
           <p>
-            <strong>DGEN Technologies Pvt. Ltd.</strong><br />
+            <strong>Dgen Technologies Pvt. Ltd.</strong><br />
             Kolkata, India<br />
             Website: dgentechnologies.com<br />
             Email: contact@dgentechnologies.com
