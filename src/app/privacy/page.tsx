@@ -20,6 +20,9 @@ export default function Privacy() {
             This Privacy Policy explains how we collect, use, disclose, and safeguard your information 
             when you use our service.
           </p>
+          <p>
+            ADAM is AI and can make mistakes.
+          </p>
         </div>
 
         <div className={styles.section}>

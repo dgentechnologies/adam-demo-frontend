@@ -2364,6 +2364,8 @@ svg {
             </span>
           </div>
 
+          <p className="demo-disclaimer">ADAM is AI and can make mistakes.</p>
+
           {errorMsg ? <p className="error-text dark">{errorMsg}</p> : null}
         </section>
       </aside>
@@ -4921,6 +4923,14 @@ export default function App() {
           font-weight: 700;
           color: rgba(24, 28, 30, 0.68);
           border-top: 1px solid rgba(18, 20, 16, 0.08);
+        }
+
+        .demo-disclaimer {
+          margin: 0;
+          padding: 0 16px 12px;
+          font-size: 11px;
+          font-weight: 700;
+          color: rgba(24, 28, 30, 0.62);
         }
 
         .console-message {

@@ -29,6 +29,9 @@ export default function Terms() {
             provided by Dgen Technologies. The web demo is a 5-minute session designed to showcase the 
             capabilities of the ADAM system.
           </p>
+          <p>
+            ADAM is AI and can make mistakes.
+          </p>
         </div>
 
         <div className={styles.section}>
