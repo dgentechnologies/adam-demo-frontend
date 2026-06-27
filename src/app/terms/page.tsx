@@ -59,15 +59,18 @@ export default function Terms() {
         <div className={styles.section}>
           <h2>5. Data Collection and Use</h2>
           <p>
-            <strong>Conversation Privacy:</strong> All conversation data exchanged during your ADAM session 
-            is <strong>completely private and will not be collected or stored by Dgen Technologies</strong>. 
-            Your conversations are not saved, processed for analysis, or used for any purpose beyond the 
-            real-time interaction.
+            <strong>Conversation and Usage Data:</strong> During the ADAM experience, conversation content,
+            transcripts, and session metadata may be processed and used by Dgen Technologies for service
+            operation, quality assurance, analytics, and model improvement or training purposes.
           </p>
           <p>
-            <strong>Other Information:</strong> Non-conversation information such as email address, name, 
-            session metadata (duration, timestamp), and general usage patterns may be collected and used 
-            for:
+            If you want your account data or stored conversation records deleted from Dgen-managed systems,
+            you can request deletion by emailing <strong>contact@dgentechnologies.com</strong>. We will process
+            verified deletion requests in accordance with applicable law.
+          </p>
+          <p>
+            <strong>Other Information:</strong> Information such as email address, name, session metadata
+            (duration, timestamp), and general usage patterns may be collected and used for:
           </p>
           <ul>
             <li>Improving and optimizing the ADAM service</li>
@@ -75,6 +78,12 @@ export default function Terms() {
             <li>Analytics and product insights</li>
             <li>Communicating updates and improvements</li>
           </ul>
+          <p>
+            <strong>Third-party Services:</strong> Authentication and infrastructure providers (including
+            Google) may process your data under their own terms and policies. Dgen Technologies is not
+            responsible for how third-party providers use data for their internal purposes, including
+            provider-side model training.
+          </p>
         </div>
 
         <div className={styles.section}>

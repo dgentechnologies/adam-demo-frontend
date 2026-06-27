@@ -50,11 +50,10 @@ export default function Privacy() {
             <li>Geographic location (country code)</li>
           </ul>
 
-          <h3>Conversation Data - NOT COLLECTED</h3>
+          <h3>Conversation Data</h3>
           <p>
-            <strong>Important:</strong> We do NOT collect, store, or retain the actual conversation content 
-            exchanged with ADAM during your session. Your conversations are completely private and ephemeral—
-            they exist only during your real-time interaction.
+            Conversation inputs, outputs, transcripts, and related interaction metadata may be processed
+            to operate the service, improve quality, and support product research and training workflows.
           </p>
         </div>
 
@@ -75,12 +74,6 @@ export default function Privacy() {
             <li><strong>Analytics:</strong> Understanding user engagement and service quality</li>
             <li><strong>Security:</strong> Detecting and preventing abuse or unauthorized access</li>
           </ul>
-
-          <h3>Conversation Data</h3>
-          <p>
-            Since we do not collect conversation data, it cannot be used for any purpose. Your conversations 
-            remain entirely private.
-          </p>
         </div>
 
         <div className={styles.section}>
@@ -103,7 +96,8 @@ export default function Privacy() {
         <div className={styles.section}>
           <h2>5. Data Retention</h2>
           <p>
-            <strong>Conversation Data:</strong> Never stored or retained.
+            <strong>Conversation Data:</strong> Stored only as needed for operational, security, legal, and
+            product improvement purposes, then deleted according to our retention schedule.
           </p>
           <p>
             <strong>Account and Session Data:</strong> Retained as long as your account is active. 
@@ -147,6 +141,10 @@ export default function Privacy() {
           <p>
             To exercise these rights, please contact us at the email address below.
           </p>
+          <p>
+            To request deletion of your account data or stored conversation records from Dgen-managed systems,
+            email <strong>contact@dgentechnologies.com</strong>.
+          </p>
         </div>
 
         <div className={styles.section}>
@@ -158,6 +156,10 @@ export default function Privacy() {
           </p>
         </div>
 
+          <p>
+            Google and other third-party providers may process data under their own policies, including for
+            provider-side model training. Dgen Technologies is not responsible for third-party internal data use.
+          </p>
         <div className={styles.section}>
           <h2>9. Children's Privacy</h2>
           <p>

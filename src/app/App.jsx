@@ -186,6 +186,14 @@ function buildEmailActionUrl() {
   return url.toString();
 }
 
+function hasGoogleProvider(user) {
+  if (!user || !Array.isArray(user.providerData)) {
+    return false;
+  }
+
+  return user.providerData.some((provider) => provider?.providerId === 'google.com');
+}
+
 async function getOnboardingRecord(uid) {
   try {
     const snapshot = await getDoc(doc(getClientDb(), 'onboarding', uid));
@@ -282,6 +290,7 @@ function AppProvider({ children }) {
     waitlistFilled: false,
     tester: false,
     onboardingComplete: false,
+    isGoogleSignIn: false,
   });
   const [onboardingData, setOnboardingData] = useState({
     name: '',
@@ -314,12 +323,14 @@ function AppProvider({ children }) {
           waitlistFilled: false,
           tester: false,
           onboardingComplete: false,
+          isGoogleSignIn: false,
         });
         setAuthReady(true);
         return;
       }
 
       const token = await user.getIdToken().catch(() => '');
+      const isGoogleSignIn = hasGoogleProvider(user);
       const [onboardingRecord, accountStatusResp] = await Promise.all([
         getOnboardingRecord(user.uid),
         apiAccountStatus({ idToken: token }),
@@ -334,11 +345,12 @@ function AppProvider({ children }) {
       setOnboardingComplete(Boolean(onboardingRecord?.completed) || Boolean(nextAccountStatus.onboardingComplete));
       setAccountStatus({
         loaded: true,
-        emailVerified: Boolean(nextAccountStatus.emailVerified || user.emailVerified),
+        emailVerified: Boolean(nextAccountStatus.emailVerified || user.emailVerified || isGoogleSignIn),
         demoUsed: Boolean(nextAccountStatus.demoUsed),
         waitlistFilled: Boolean(nextAccountStatus.waitlistFilled),
         tester: Boolean(nextAccountStatus.tester),
         onboardingComplete: Boolean(onboardingRecord?.completed) || Boolean(nextAccountStatus.onboardingComplete),
+        isGoogleSignIn,
       });
       setOnboardingData((previous) => ({
         ...previous,
@@ -447,15 +459,17 @@ function LoginPage({ push }) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const canProceedWithAuth = termsAccepted && privacyAccepted;
 
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError('');
 
-    if (!termsAccepted) {
-      setError('Please agree to the Terms of Service and Privacy Policy.');
+    if (!canProceedWithAuth) {
+      setError('Please accept both Terms and Conditions and Privacy Policy to continue.');
       return;
     }
 
@@ -493,6 +507,7 @@ function LoginPage({ push }) {
           waitlistFilled: false,
           tester: false,
           onboardingComplete: false,
+          isGoogleSignIn: false,
         });
         setOnboardingData((prev) => ({ ...prev, name: fullName }));
         setLoading(false);
@@ -535,17 +550,36 @@ function LoginPage({ push }) {
 
   const handleGoogleSignIn = async () => {
     setError('');
+
+    if (!canProceedWithAuth) {
+      setError('Please accept both Terms and Conditions and Privacy Policy to continue.');
+      return;
+    }
+
     setLoading(true);
 
     if (FIREBASE_ENABLED) {
       try {
         const credential = await signInWithPopup(getClientAuth(), googleProvider);
+        const token = await credential.user.getIdToken();
         const onboardingRecord = await getOnboardingRecord(credential.user.uid);
+        const accountStatusResp = await apiAccountStatus({ idToken: token });
+        const nextAccountStatus = accountStatusResp.ok ? accountStatusResp.data : {};
+        const nextStatus = {
+          loaded: true,
+          emailVerified: true,
+          demoUsed: Boolean(nextAccountStatus.demoUsed),
+          waitlistFilled: Boolean(nextAccountStatus.waitlistFilled),
+          tester: Boolean(nextAccountStatus.tester),
+          onboardingComplete: Boolean(onboardingRecord?.completed) || Boolean(nextAccountStatus.onboardingComplete),
+          isGoogleSignIn: true,
+        };
 
-        setAuthToken(await credential.user.getIdToken());
+        setAuthToken(token);
         setUserId(credential.user.uid);
         setEmail(credential.user.email || '');
-        setOnboardingComplete(Boolean(onboardingRecord?.completed));
+        setOnboardingComplete(nextStatus.onboardingComplete);
+        setAccountStatus(nextStatus);
         setOnboardingData((prev) => ({
           ...prev,
           name: credential.user.displayName || prev.name,
@@ -554,7 +588,11 @@ function LoginPage({ push }) {
           dob: onboardingRecord?.dob || prev.dob,
         }));
         setLoading(false);
-        push(onboardingRecord?.completed ? '/demo' : '/onboarding');
+        if (nextStatus.demoUsed && !nextStatus.tester) {
+          push('/waitlist');
+          return;
+        }
+        push(nextStatus.onboardingComplete ? '/demo' : '/onboarding');
         return;
       } catch (_authError) {
         setError('Google sign-in failed. Please try again.');
@@ -567,6 +605,15 @@ function LoginPage({ push }) {
     setUserId('usr_google_001');
     setEmail(emailValue || 'google.user@example.com');
     setOnboardingComplete(false);
+    setAccountStatus({
+      loaded: true,
+      emailVerified: true,
+      demoUsed: false,
+      waitlistFilled: false,
+      tester: false,
+      onboardingComplete: false,
+      isGoogleSignIn: true,
+    });
     setLoading(false);
     push('/onboarding');
   };
@@ -586,7 +633,7 @@ function LoginPage({ push }) {
 
           <div className="form-scroll-body">
             <form className="stack-lg" onSubmit={handleSubmit}>
-              <button type="button" className="btn-google" onClick={handleGoogleSignIn} disabled={loading}>
+              <button type="button" className="btn-google" onClick={handleGoogleSignIn} disabled={loading || !canProceedWithAuth}>
                 <svg className="google-icon" viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
                   <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -705,16 +752,25 @@ function LoginPage({ push }) {
                 </div>
               </div>
 
-              <label className="terms-row">
-                <input type="checkbox" checked={termsAccepted} onChange={(e) => setTermsAccepted(e.target.checked)} />
-                <span>
-                  I agree to the <a href="/terms" target="_blank" rel="noopener noreferrer">Terms of Service</a> and <a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>.
-                </span>
-              </label>
+              <div className="consent-stack" role="group" aria-label="Required legal consent">
+                <label className="consent-row">
+                  <input type="checkbox" checked={termsAccepted} onChange={(e) => setTermsAccepted(e.target.checked)} />
+                  <span>
+                    I accept the <a href="/terms" target="_blank" rel="noopener noreferrer">Terms and Conditions</a>.
+                  </span>
+                </label>
+                <label className="consent-row">
+                  <input type="checkbox" checked={privacyAccepted} onChange={(e) => setPrivacyAccepted(e.target.checked)} />
+                  <span>
+                    I accept the <a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>.
+                  </span>
+                </label>
+                <p className="consent-note">Both consents are mandatory to continue with Google or email signup.</p>
+              </div>
 
               {error ? <p className="error-text dark">{error}</p> : null}
 
-              <button className="btn-primary" type="submit" disabled={loading}>
+              <button className="btn-primary" type="submit" disabled={loading || !canProceedWithAuth}>
                 {loading ? 'Signing Up...' : 'Sign Up'}
               </button>
             </form>
@@ -762,6 +818,7 @@ function VerifyEmailPage({ push }) {
         waitlistFilled: Boolean(accountStatusResp.data?.waitlistFilled),
         tester: Boolean(accountStatusResp.data?.tester),
         onboardingComplete: Boolean(accountStatusResp.data?.onboardingComplete),
+        isGoogleSignIn: hasGoogleProvider(user),
       };
       clearPendingEmail();
       setPendingEmail('');
@@ -789,6 +846,7 @@ function VerifyEmailPage({ push }) {
           waitlistFilled: Boolean(statusResp.data?.waitlistFilled),
           tester: Boolean(statusResp.data?.tester),
           onboardingComplete: Boolean(statusResp.data?.onboardingComplete),
+          isGoogleSignIn: false,
         };
         clearPendingEmail();
         setPendingEmail('');
@@ -2376,6 +2434,7 @@ svg {
             <span className="demo-welcome-kicker">ADAM EXCLUSIVE PREVIEW</span>
             <h1>Welcome to the ADAM Experience</h1>
             <p>Your private 5-minute session is ready. ADAM is online and standing by for your first command.</p>
+            <p className="demo-welcome-warning">Do not share passwords, bank details, OTPs, or other private information. Session conversations may be used to improve and train ADAM systems.</p>
             <p className="demo-welcome-note">Priority early-access invitations are sent first to users who complete this guided preview.</p>
             <button className="demo-welcome-button" type="button" onClick={beginSession}>
               Start Live Session
@@ -2571,6 +2630,7 @@ function WaitlistPage({ push }) {
 function RouterView() {
   const { route, push } = useHashRouter();
   const { authToken, userId, authReady, onboardingComplete, accountStatus } = useAppContext();
+  const needsEmailVerification = accountStatus.loaded && !accountStatus.emailVerified && !accountStatus.isGoogleSignIn;
 
   useEffect(() => {
     if (!authReady || !authToken || route !== '/') {
@@ -2582,19 +2642,23 @@ function RouterView() {
       return;
     }
 
-    if (accountStatus.loaded && !accountStatus.emailVerified) {
+    if (needsEmailVerification) {
       push('/verify-email');
       return;
     }
 
     push(onboardingComplete ? '/demo' : '/onboarding');
-  }, [accountStatus, authReady, authToken, onboardingComplete, push, route]);
+  }, [accountStatus, authReady, authToken, needsEmailVerification, onboardingComplete, push, route]);
 
   if (!authReady) {
     return null;
   }
 
   if (route === '/verify-email') {
+    if (accountStatus.loaded && accountStatus.isGoogleSignIn) {
+      push(accountStatus.demoUsed && !accountStatus.tester ? '/waitlist' : onboardingComplete ? '/demo' : '/onboarding');
+      return null;
+    }
     return <VerifyEmailPage push={push} />;
   }
 
@@ -2609,7 +2673,7 @@ function RouterView() {
     if (!accountStatus.loaded) {
       return null;
     }
-    if (!accountStatus.emailVerified) {
+    if (needsEmailVerification) {
       return <VerifyEmailPage push={push} />;
     }
     if (accountStatus.loaded && accountStatus.demoUsed && !accountStatus.tester) {
@@ -2625,7 +2689,7 @@ function RouterView() {
     if (!accountStatus.loaded) {
       return null;
     }
-    if (!accountStatus.emailVerified) {
+    if (needsEmailVerification) {
       return <VerifyEmailPage push={push} />;
     }
     if (accountStatus.loaded && accountStatus.demoUsed && !accountStatus.tester) {
@@ -2964,16 +3028,35 @@ export default function App() {
           background: #ffffff;
         }
 
-        .terms-row {
+        .consent-stack {
+          display: grid;
+          gap: 8px;
+          border: 1px solid rgba(18, 20, 16, 0.1);
+          border-radius: 12px;
+          padding: 10px 12px;
+          background: rgba(255, 255, 255, 0.36);
+        }
+
+        .consent-row {
           display: flex;
-          align-items: center;
+          align-items: flex-start;
           gap: 8px;
           font-size: 12px;
           color: rgba(19, 19, 19, 0.66);
         }
 
-        .terms-row a {
+        .consent-row input {
+          margin-top: 2px;
+        }
+
+        .consent-row a {
           color: var(--green-strong);
+        }
+
+        .consent-note {
+          margin: 2px 0 0;
+          font-size: 11px;
+          color: rgba(19, 19, 19, 0.56);
         }
 
         .btn-primary {
@@ -3041,6 +3124,13 @@ export default function App() {
           box-shadow: 0 1px 4px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.36);
           font-family: 'Inter', sans-serif;
           letter-spacing: 0.01em;
+        }
+
+        .btn-google:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
+          transform: none;
+          box-shadow: 0 1px 4px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.36);
         }
 
         .email-verify-row {
@@ -5096,6 +5186,16 @@ export default function App() {
           font-size: 12px;
           color: rgba(46, 52, 35, 0.78);
           line-height: 1.45;
+        }
+
+        .demo-welcome-warning {
+          font-size: 12px;
+          line-height: 1.5;
+          color: #8a4b00;
+          background: rgba(255, 182, 70, 0.18);
+          border: 1px solid rgba(255, 182, 70, 0.38);
+          border-radius: 12px;
+          padding: 10px 12px;
         }
 
         .demo-welcome-button {
