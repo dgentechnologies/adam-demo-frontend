@@ -194,6 +194,21 @@ function hasGoogleProvider(user) {
   return user.providerData.some((provider) => provider?.providerId === 'google.com');
 }
 
+async function saveConsentMetadata({ userId, email, provider, termsAccepted, privacyAccepted }) {
+  if (!FIREBASE_ENABLED || !userId) {
+    return;
+  }
+
+  await setDoc(doc(getClientDb(), 'adamUsers', userId), {
+    uid: userId,
+    email: email || '',
+    consentTermsAccepted: Boolean(termsAccepted),
+    consentPrivacyAccepted: Boolean(privacyAccepted),
+    consentAcceptedAt: serverTimestamp(),
+    consentSource: provider,
+  }, { merge: true });
+}
+
 async function getOnboardingRecord(uid) {
   try {
     const snapshot = await getDoc(doc(getClientDb(), 'onboarding', uid));
@@ -500,6 +515,13 @@ function LoginPage({ push }) {
         setUserId(credential.user.uid);
         setEmail(credential.user.email || emailValue);
         setOnboardingComplete(false);
+        await saveConsentMetadata({
+          userId: credential.user.uid,
+          email: credential.user.email || emailValue,
+          provider: credential.user.providerData?.[0]?.providerId || 'email',
+          termsAccepted,
+          privacyAccepted,
+        });
         setAccountStatus({
           loaded: true,
           emailVerified: false,
@@ -544,6 +566,13 @@ function LoginPage({ push }) {
     setEmail(emailValue);
     setOnboardingComplete(false);
     setOnboardingData((prev) => ({ ...prev, name: `${firstName} ${lastName}`.trim() }));
+    await saveConsentMetadata({
+      userId: result.data.userId,
+      email: emailValue,
+      provider: 'email',
+      termsAccepted,
+      privacyAccepted,
+    });
     setLoading(false);
     push('/onboarding');
   };
@@ -580,6 +609,13 @@ function LoginPage({ push }) {
         setEmail(credential.user.email || '');
         setOnboardingComplete(nextStatus.onboardingComplete);
         setAccountStatus(nextStatus);
+        await saveConsentMetadata({
+          userId: credential.user.uid,
+          email: credential.user.email || '',
+          provider: 'google',
+          termsAccepted,
+          privacyAccepted,
+        });
         setOnboardingData((prev) => ({
           ...prev,
           name: credential.user.displayName || prev.name,
@@ -614,6 +650,13 @@ function LoginPage({ push }) {
       onboardingComplete: false,
       isGoogleSignIn: true,
     });
+    await saveConsentMetadata({
+      userId: 'usr_google_001',
+      email: emailValue || 'google.user@example.com',
+      provider: 'google',
+      termsAccepted,
+      privacyAccepted,
+    });
     setLoading(false);
     push('/onboarding');
   };
@@ -633,7 +676,29 @@ function LoginPage({ push }) {
 
           <div className="form-scroll-body">
             <form className="stack-lg" onSubmit={handleSubmit}>
-              <button type="button" className="btn-google" onClick={handleGoogleSignIn} disabled={loading || !canProceedWithAuth}>
+              <div className="consent-stack consent-stack-top" role="group" aria-label="Required legal consent">
+                <label className="consent-row">
+                  <input type="checkbox" checked={termsAccepted} onChange={(e) => setTermsAccepted(e.target.checked)} />
+                  <span>
+                    I accept the <a href="/terms" target="_blank" rel="noopener noreferrer">Terms and Conditions</a>.
+                  </span>
+                </label>
+                <label className="consent-row">
+                  <input type="checkbox" checked={privacyAccepted} onChange={(e) => setPrivacyAccepted(e.target.checked)} />
+                  <span>
+                    I accept the <a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>.
+                  </span>
+                </label>
+                <p className="consent-note">Both consents are mandatory to continue with Google or email signup.</p>
+              </div>
+
+              <button
+                type="button"
+                className="btn-google"
+                onClick={handleGoogleSignIn}
+                disabled={loading || !canProceedWithAuth}
+                title={canProceedWithAuth ? 'Continue with Google' : 'Accept Terms and Conditions and Privacy Policy first'}
+              >
                 <svg className="google-icon" viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
                   <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -750,22 +815,6 @@ function LoginPage({ push }) {
                     )}
                   </button>
                 </div>
-              </div>
-
-              <div className="consent-stack" role="group" aria-label="Required legal consent">
-                <label className="consent-row">
-                  <input type="checkbox" checked={termsAccepted} onChange={(e) => setTermsAccepted(e.target.checked)} />
-                  <span>
-                    I accept the <a href="/terms" target="_blank" rel="noopener noreferrer">Terms and Conditions</a>.
-                  </span>
-                </label>
-                <label className="consent-row">
-                  <input type="checkbox" checked={privacyAccepted} onChange={(e) => setPrivacyAccepted(e.target.checked)} />
-                  <span>
-                    I accept the <a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>.
-                  </span>
-                </label>
-                <p className="consent-note">Both consents are mandatory to continue with Google or email signup.</p>
               </div>
 
               {error ? <p className="error-text dark">{error}</p> : null}
@@ -3037,6 +3086,10 @@ export default function App() {
           background: rgba(255, 255, 255, 0.36);
         }
 
+        .consent-stack-top {
+          margin-bottom: 4px;
+        }
+
         .consent-row {
           display: flex;
           align-items: flex-start;
@@ -3057,6 +3110,13 @@ export default function App() {
           margin: 2px 0 0;
           font-size: 11px;
           color: rgba(19, 19, 19, 0.56);
+        }
+
+        .google-tooltip-note {
+          margin: -2px 0 0;
+          font-size: 11px;
+          line-height: 1.4;
+          color: rgba(19, 19, 19, 0.55);
         }
 
         .btn-primary {
